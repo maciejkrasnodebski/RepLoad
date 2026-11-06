@@ -126,6 +126,12 @@ directory and set `BACKEND_URL=https://repload.onrender.com`. The frontend
 proxies API requests through its own origin, allowing the HttpOnly session
 cookie to work across desktop and mobile browsers.
 
+Configure the Render service with `backend` as its root directory,
+`npm ci && npm run build` as its build command, and `npm run start:prod` as its
+start command. The build generates the Prisma client from the checked-in
+schema before compiling NestJS; generated Prisma files are intentionally not
+stored in Git.
+
 For local development, copy `.env.example` to `.env` and set the local
 database credentials. The example allows both localhost and the production
 frontend origin.
