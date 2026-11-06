@@ -17,8 +17,8 @@ import {
   type WorkoutSession,
   type WorkoutTemplate,
 } from "./types";
+import { API_URL } from "@/lib/api";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 const shortWeekdays = ["Pn", "Wt", "Śr", "Cz", "Pt", "So", "Nd"] as const;
 
 function MiniWorkoutBar({

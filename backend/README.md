@@ -109,6 +109,27 @@ to authenticate again after migration.
 $ npm install
 ```
 
+## RepLoad deployment
+
+The production frontend is hosted at `https://repload.vercel.app` and the API
+at `https://repload.onrender.com`. Configure these environment variables on
+Render (never commit production secrets):
+
+- `NODE_ENV=production`
+- `FRONTEND_URL=https://repload.vercel.app` (comma-separated origins are
+  supported when more than one frontend origin is needed)
+- `JWT_SECRET` with a long, unique random value
+- `DATABASE_URL` with the PostgreSQL connection string
+
+Render supplies `PORT`. The Vercel project should use `frontend` as its root
+directory and set `BACKEND_URL=https://repload.onrender.com`. The frontend
+proxies API requests through its own origin, allowing the HttpOnly session
+cookie to work across desktop and mobile browsers.
+
+For local development, copy `.env.example` to `.env` and set the local
+database credentials. The example allows both localhost and the production
+frontend origin.
+
 ## Compile and run the project
 
 ```bash

@@ -4,8 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { getSafeReturnPath } from "@/lib/return-to";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+import { API_URL } from "@/lib/api";
 
 export default function LoginForm() {
   const router = useRouter();

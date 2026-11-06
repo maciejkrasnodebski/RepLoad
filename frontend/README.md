@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RepLoad frontend
 
-## Getting Started
+The mobile-first RepLoad frontend is built with Next.js and deployed to
+[Vercel](https://repload.vercel.app/). It uses the authenticated NestJS API
+deployed to [Render](https://repload.onrender.com/).
 
-First, run the development server:
+## Local development
 
-```bash
+```powershell
+Copy-Item .env.example .env.local
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The local API proxy defaults to `http://localhost:4000`. Start the backend in
+a separate terminal. To use another backend, set `BACKEND_URL` in `.env.local`.
+All browser requests use the same-origin `/api/backend` path; Next.js rewrites
+these requests to the backend so the HttpOnly session cookie works in mobile
+and desktop browsers without relying on third-party cookies.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Vercel deployment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Set the project root directory to `frontend` and configure this environment
+variable for Production (and Preview if desired):
 
-## Learn More
+```text
+BACKEND_URL=https://repload.onrender.com
+```
 
-To learn more about Next.js, take a look at the following resources:
+Deployments use `npm run build`. The frontend API proxy keeps requests on the
+Vercel origin and forwards them to Render.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Mobile experience
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The UI supports narrow phone viewports, safe-area insets, touch-friendly
+controls, a fixed mobile navigation bar, and reduced-motion preferences.

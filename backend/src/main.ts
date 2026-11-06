@@ -7,11 +7,16 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
+  const frontendOrigins = config
+    .get<string>('FRONTEND_URL', 'http://localhost:3000')
+    .split(',')
+    .map((origin) => origin.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
 
   app.use(cookieParser());
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
   app.enableCors({
-    origin: config.get<string>('FRONTEND_URL'),
+    origin: frontendOrigins,
     credentials: true,
   });
 
