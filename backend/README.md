@@ -1,0 +1,176 @@
+<p align="center">
+  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
+</p>
+
+[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
+[circleci-url]: https://circleci.com/gh/nestjs/nest
+
+  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
+    <p align="center">
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
+<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
+<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
+<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
+<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
+  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
+    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
+  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
+</p>
+  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
+  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+
+## Description
+
+[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+
+## Weekly plans API
+
+All routes require the existing authenticated session cookie.
+
+- `GET /weekly-plans` returns an array of `{ id, name, days }`. Each `days`
+  array contains seven entries shaped as
+  `{ dayOfWeek, templateId, template, isRestDay }`.
+- `POST /weekly-plans` accepts `{ name }` and creates seven initially
+  unassigned day entries.
+- `PATCH /weekly-plans/:id` accepts `{ name?, assignments? }`.
+  `assignments` is a partial update: omitted days stay unchanged; each item is
+  `{ dayOfWeek, templateId, isRestDay }`. Use a null `templateId` and
+  `isRestDay: false` to clear one day, or `templateId: null` and
+  `isRestDay: true` for a rest day. The same template may be assigned to
+  multiple days.
+- `DELETE /weekly-plans/:id` deletes the authenticated user's plan.
+
+The `template` field is null when no template is assigned; otherwise it
+contains the template summary and exercises. Exercise entries include a
+`settings` object with nullable `sets`, `reps`, `weight`, `durationSeconds`,
+`restSeconds`, and `distance` values. Template responses also include nullable
+`color` and `icon`.
+
+The migration preserves `Template.dayOfWeek` and imports existing assignments
+into one plan per affected user. When multiple legacy templates share a
+weekday, the oldest template is assigned in the imported plan; other templates
+and their legacy weekday values remain unchanged.
+
+Template creation/update remains compatible with `exerciseIds`. New clients
+can send `exercises: [{ exerciseId, sets?, reps?, weight?, durationSeconds?,
+restSeconds?, distance? }]` instead (the two formats cannot be combined).
+
+## Workout history API
+
+All workout routes require the authenticated `token` cookie. User IDs and JWT
+subjects are UUID strings. `GET /workouts/current` returns the user's active
+workout or `null` and is the resume/recovery endpoint. `POST /workouts/start`
+starts a blank workout or snapshots a template's exercise names, ordering, and
+prescription settings into a new session:
+
+```json
+{ "templateId": "template-id", "name": "Upper body" }
+```
+
+It can also start from a scheduled plan day with
+`{ "weeklyPlanId": "plan-id", "dayOfWeek": 1 }`; the day must have an assigned
+workout template. A user has at most one active session; repeated start calls
+return that active session.
+
+- `POST /workouts/:sessionId/exercises` adds `{ "exerciseId": 12 }` or a custom
+  `{ "name": "Custom movement" }` entry. `PATCH` and `DELETE`
+  `/workouts/:sessionId/exercises/:entryId` edit or remove it.
+- `POST /workouts/:sessionId/exercises/:entryId/series` creates a series;
+  `PATCH` and `DELETE /workouts/:sessionId/series/:seriesId` update or remove
+  one. Series fields are `reps`, `weight`, `durationSeconds`, `distance`,
+  `restSeconds`, `rpe`, `rir`, `notes`, `isDone`, and `order`. Numeric
+  measurements are stored as PostgreSQL `DECIMAL(10,2)` for weight/distance
+  and `DECIMAL(3,1)` for RPE, and serialized as fixed-scale strings.
+- `PATCH /workouts/:sessionId/autosave` accepts optional session `name` and
+  nested `exercises`; IDs update existing entries, missing IDs create entries.
+  Omitted entries are retained; use the explicit delete routes to remove them.
+- `POST /workouts/:sessionId/finish` completes a workout idempotently;
+  `POST /workouts/:sessionId/cancel` cancels it. `GET /workouts/history`
+  returns the latest completed/cancelled sessions (`limit` 1–100, default 50),
+  `GET /workouts/:sessionId` returns a session detail, and
+  `GET /workouts/exercises/:exerciseId/previous` returns the latest completed
+  performance for that accessible exercise.
+
+Session responses contain `{ id, name, templateId, templateName, status,
+startedAt, endedAt, exercises }`; each exercise entry includes its copied
+`name`, optional linked `exerciseId`, `order`, and its independently editable
+`series`. Each series includes the measurement fields, `isDone`, and `order`.
+All workout reads and mutations are scoped to the authenticated user. The UUID
+migration maps every existing integer user ID to a generated UUID and converts
+all existing user foreign keys through the same mapping, preserving accounts
+and ownership relations. Existing cookies with integer JWT subjects will need
+to authenticate again after migration.
+
+## Project setup
+
+```bash
+$ npm install
+```
+
+## Compile and run the project
+
+```bash
+# development
+$ npm run start
+
+# watch mode
+$ npm run start:dev
+
+# production mode
+$ npm run start:prod
+```
+
+## Run tests
+
+```bash
+# unit tests
+$ npm run test
+
+# e2e tests
+$ npm run test:e2e
+
+# test coverage
+$ npm run test:cov
+```
+
+## Deployment
+
+When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+
+If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+
+```bash
+$ npm install -g @nestjs/mau
+$ mau deploy
+```
+
+With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+
+## Resources
+
+Check out a few resources that may come in handy when working with NestJS:
+
+- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
+- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
+- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
+- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
+- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
+- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
+- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
+- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+
+## Support
+
+Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+
+## Stay in touch
+
+- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
+- Website - [https://nestjs.com](https://nestjs.com/)
+- Twitter - [@nestframework](https://twitter.com/nestframework)
+
+## License
+
+Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
