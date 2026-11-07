@@ -1,5 +1,6 @@
 import {
   ArrayUnique,
+  ArrayMaxSize,
   IsArray,
   IsInt,
   IsOptional,
@@ -74,6 +75,15 @@ export class CreateTemplateDto {
   @Min(0)
   @Max(6)
   dayOfWeek?: number | null;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(7)
+  @ArrayUnique()
+  @IsInt({ each: true })
+  @Min(0, { each: true })
+  @Max(6, { each: true })
+  daysOfWeek?: number[];
 
   @IsOptional()
   @IsArray()

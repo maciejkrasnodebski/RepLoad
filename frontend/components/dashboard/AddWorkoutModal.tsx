@@ -28,7 +28,7 @@ import { API_URL } from "@/lib/api";
 
 export type WorkoutTemplatePayload = {
   name: string;
-  dayOfWeek: number | null;
+  daysOfWeek: number[];
   color: string;
   icon: string;
   exercises: Array<{ exerciseId: number } & Partial<ExerciseSettings>>;
@@ -65,6 +65,16 @@ const equipmentOptions = [
   "Kettlebell",
   "Gumy oporowe",
   "Inne",
+] as const;
+
+const weekdayOptions = [
+  { label: "Pon", value: 0 },
+  { label: "Wt", value: 1 },
+  { label: "Śr", value: 2 },
+  { label: "Czw", value: 3 },
+  { label: "Pt", value: 4 },
+  { label: "Sob", value: 5 },
+  { label: "Nd", value: 6 },
 ] as const;
 
 function isTrackingType(value: string): value is TrackingType {
@@ -191,6 +201,13 @@ export default function AddWorkoutModal({ template, onClose, onSave }: Props) {
     template?.color ?? templateThemes[0].color,
   );
   const [icon, setIcon] = useState(template?.icon ?? templateThemes[0].icon);
+  const [daysOfWeek, setDaysOfWeek] = useState<number[]>(
+    () =>
+      template?.daysOfWeek ??
+      (template?.dayOfWeek === null || template?.dayOfWeek === undefined
+        ? []
+        : [template.dayOfWeek]),
+  );
   const makeSlot = (
     exercise: Exercise,
     settings = defaultSettings(exercise.exerciseType),
@@ -381,7 +398,7 @@ export default function AddWorkoutModal({ template, onClose, onSave }: Props) {
       await onSave(
         {
           name: name.trim(),
-          dayOfWeek: template?.dayOfWeek ?? null,
+          daysOfWeek,
           color,
           icon,
           exercises: exercises.map(({ id, settings }) => ({
@@ -540,10 +557,41 @@ export default function AddWorkoutModal({ template, onClose, onSave }: Props) {
                   Jeden szablon, wiele dni
                 </p>
                 <p className="mt-1 text-xs leading-5 text-neutral-400">
-                  Dni treningowe ustawisz w planie tygodnia. Ten sam szablon
-                  możesz przypisać na przykład do poniedziałku i piątku.
+                  Wybierz dni treningowe. Ten sam szablon pojawi się w każdym z
+                  nich; możesz też zostawić wszystkie dni odznaczone.
                 </p>
               </div>
+              <fieldset>
+                <legend className="mb-2 text-sm font-medium text-neutral-300">
+                  Dni treningowe
+                </legend>
+                <div className="grid grid-cols-4 gap-2">
+                  {weekdayOptions.map(({ label, value: weekday }) => {
+                    const selected = daysOfWeek.includes(weekday);
+                    return (
+                      <button
+                        key={weekday}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() =>
+                          setDaysOfWeek((current) =>
+                            selected
+                              ? current.filter((value) => value !== weekday)
+                              : [...current, weekday].sort((a, b) => a - b),
+                          )
+                        }
+                        className={`min-h-12 rounded-xl border text-sm font-semibold transition ${
+                          selected
+                            ? "border-lime-300/50 bg-lime-400 text-neutral-950"
+                            : "border-white/10 bg-neutral-950/60 text-neutral-300 hover:border-lime-400/40"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
               <p className="text-xs text-neutral-500">
                 W kolejnym kroku wybierzesz ćwiczenia i ustawisz ich kolejność.
               </p>

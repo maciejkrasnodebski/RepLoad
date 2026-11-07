@@ -5,11 +5,10 @@ import { useRouter } from "next/navigation";
 import AddWorkoutModal, {
   type WorkoutTemplatePayload,
 } from "./AddWorkoutModal";
-import { CalendarIcon, DumbbellIcon, LogoutIcon, PlusIcon } from "./icons";
-import StatCard from "./StatCard";
+import { DumbbellIcon, PlusIcon } from "./icons";
+import AccountMenu from "./AccountMenu";
 import MobileNavigation from "./MobileNavigation";
 import TemplateCard from "./TemplateCard";
-import WeeklyPlanner, { type WeeklyPlanSnapshot } from "./WeeklyPlanner";
 import ActiveWorkout from "./ActiveWorkout";
 import WorkoutHistory from "./WorkoutHistory";
 import {
@@ -19,7 +18,15 @@ import {
 } from "./types";
 import { API_URL } from "@/lib/api";
 
-const shortWeekdays = ["Pn", "Wt", "Śr", "Cz", "Pt", "So", "Nd"] as const;
+const weekdays = [
+  { short: "Pn", name: "Poniedziałek" },
+  { short: "Wt", name: "Wtorek" },
+  { short: "Śr", name: "Środa" },
+  { short: "Cz", name: "Czwartek" },
+  { short: "Pt", name: "Piątek" },
+  { short: "So", name: "Sobota" },
+  { short: "Nd", name: "Niedziela" },
+] as const;
 
 function MiniWorkoutBar({
   session,
@@ -106,7 +113,16 @@ function isWorkoutTemplate(value: unknown): value is WorkoutTemplate {
       (typeof value.dayOfWeek !== "number" ||
         !Number.isInteger(value.dayOfWeek) ||
         value.dayOfWeek < 0 ||
-        value.dayOfWeek > 6))
+        value.dayOfWeek > 6)) ||
+    ("daysOfWeek" in value &&
+      (!Array.isArray(value.daysOfWeek) ||
+        !value.daysOfWeek.every(
+          (day: unknown) =>
+            typeof day === "number" &&
+            Number.isInteger(day) &&
+            day >= 0 &&
+            day <= 6,
+        )))
   ) {
     return false;
   }
@@ -189,7 +205,7 @@ export default function Dashboard() {
   const [workoutOpen, setWorkoutOpen] = useState(false);
   const [workoutLoading, setWorkoutLoading] = useState(true);
   const [workoutError, setWorkoutError] = useState<string | null>(null);
-  const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlanSnapshot | null>(null);
+  const [workoutRetryKey, setWorkoutRetryKey] = useState(0);
   const [todayInfo, setTodayInfo] = useState<{
     dayIndex: number;
     dateLabel: string;
@@ -263,7 +279,17 @@ export default function Dashboard() {
     if (!list) {
       throw new Error("Nieprawidłowy format odpowiedzi API.");
     }
-    const validList = list.filter(isWorkoutTemplate);
+    const validList = list
+      .filter(isWorkoutTemplate)
+      .map((template) => ({
+        ...template,
+        daysOfWeek:
+          "daysOfWeek" in template && Array.isArray(template.daysOfWeek)
+            ? template.daysOfWeek
+            : template.dayOfWeek === null
+              ? []
+              : [template.dayOfWeek],
+      }));
     if (validList.length !== list.length) {
       throw new Error("Nieprawidłowy format odpowiedzi API.");
     }
@@ -300,6 +326,7 @@ export default function Dashboard() {
     if (authStatus !== "authenticated") return;
     const controller = new AbortController();
     const loadCurrentWorkout = async () => {
+      setWorkoutLoading(true);
       try {
         const response = await fetch(`${API_URL}/workouts/current`, {
           credentials: "include",
@@ -328,7 +355,7 @@ export default function Dashboard() {
     };
     void loadCurrentWorkout();
     return () => controller.abort();
-  }, [authStatus, router]);
+  }, [authStatus, router, workoutRetryKey]);
 
   const startWorkout = async (template?: WorkoutTemplate) => {
     if (currentWorkout) {
@@ -391,26 +418,20 @@ export default function Dashboard() {
     [templates],
   );
   const mondayFirstToday = todayInfo?.dayIndex ?? -1;
-  const todayAssignment = weeklyPlan?.days.find(
-    (assignment) => assignment.dayOfWeek === mondayFirstToday,
-  );
-  const todayTemplate = templates.find(
-    (template) => template.id === todayAssignment?.templateId,
-  );
-  const handleActivePlanChange = useCallback(
-    (snapshot: WeeklyPlanSnapshot | null) => setWeeklyPlan(snapshot),
-    [],
-  );
-  const formattedDate = todayInfo?.dateLabel ?? "";
-  const exerciseCount = useMemo(
+  const templatesByDay = useMemo(
     () =>
-      new Set(
-        templates.flatMap((template) =>
-          template.exercises.map((exercise) => exercise.id),
+      weekdays.map((_, dayIndex) =>
+        templates.filter((template) =>
+          template.daysOfWeek.length > 0
+            ? template.daysOfWeek.includes(dayIndex)
+            : template.dayOfWeek === dayIndex,
         ),
-      ).size,
+      ),
     [templates],
   );
+  const todayTemplates = templatesByDay[mondayFirstToday] ?? [];
+  const todayTemplate = todayTemplates[0];
+  const formattedDate = todayInfo?.dateLabel ?? "";
 
   const saveTemplate = async (
     payload: WorkoutTemplatePayload,
@@ -479,6 +500,37 @@ export default function Dashboard() {
     }
   };
 
+  const duplicateTemplate = async (template: WorkoutTemplate) => {
+    setActionError(null);
+    const duplicateName = `Kopia — ${template.name}`.slice(0, 100);
+    try {
+      await saveTemplate({
+        name: duplicateName,
+        daysOfWeek: [],
+        color: template.color ?? "#A3E635",
+        icon: template.icon ?? "dumbbell",
+        exercises: template.exercises.map(({ id, settings }) => ({
+          exerciseId: id,
+          ...(settings.sets === null ? {} : { sets: settings.sets }),
+          ...(settings.reps === null ? {} : { reps: settings.reps }),
+          ...(settings.weight === null ? {} : { weight: settings.weight }),
+          ...(settings.durationSeconds === null
+            ? {}
+            : { durationSeconds: settings.durationSeconds }),
+          ...(settings.restSeconds === null
+            ? {}
+            : { restSeconds: settings.restSeconds }),
+          ...(settings.distance === null
+            ? {}
+            : { distance: settings.distance }),
+        })),
+      });
+    } catch (error) {
+      console.error("Nie udało się skopiować szablonu:", error);
+      setActionError("Nie udało się skopiować szablonu. Spróbuj ponownie.");
+    }
+  };
+
   return (
     <div className="min-h-dvh overflow-x-clip bg-[var(--app-bg)] text-[var(--text-primary)]">
       <div
@@ -493,22 +545,6 @@ export default function Dashboard() {
             <span className="text-lg font-extrabold tracking-tight">
               Rep<span className="text-lime-400">Load</span>
             </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() =>
-                document.getElementById("profile")?.scrollIntoView({
-                  behavior: "smooth",
-                  block: "start",
-                })
-              }
-              aria-label="Przejdź do profilu"
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--surface-raised)] text-sm font-bold text-lime-300"
-            >
-              {(username[0] ?? "U").toLocaleUpperCase("pl-PL")}
-            </button>
           </div>
         </header>
 
@@ -536,33 +572,31 @@ export default function Dashboard() {
                   ? currentWorkout.name ||
                     currentWorkout.templateName ||
                     "Trening własny"
-                  : todayAssignment?.isRestDay
-                    ? "Dzień odpoczynku"
-                    : todayTemplate?.name ?? "Dziś bez planu"}
+                  : todayTemplate?.name ??
+                    (templatesStatus === "loading"
+                      ? "Wczytywanie planu"
+                      : templatesStatus === "error"
+                        ? "Plan niedostępny"
+                        : "Dzień odpoczynku")}
               </h1>
               <p className="mt-1 text-sm text-[var(--text-secondary)]">
                 {currentWorkout
                   ? "Wróć do zapisanych serii"
-                  : todayAssignment?.isRestDay
-                    ? "Regeneracja też jest częścią planu."
-                    : todayTemplate
-                      ? `${todayTemplate.exercises.length} ćwiczeń w planie`
-                      : "Wybierz gotowy plan lub rozpocznij pusty trening."}
+                  : todayTemplate
+                    ? `${todayTemplates.length} ${todayTemplates.length === 1 ? "szablon" : todayTemplates.length < 5 ? "szablony" : "szablonów"} · ${todayTemplate.exercises.length} ćwiczeń`
+                    : templatesStatus === "ready"
+                      ? "Regeneracja też jest częścią planu."
+                      : "Sprawdź połączenie z serwerem."}
               </p>
             </div>
           </div>
-          {todayTemplate && !currentWorkout && (
+          {todayTemplates.length > 0 && !currentWorkout && (
             <ul className="mb-4 space-y-1.5 pl-4 text-sm text-[var(--text-secondary)]">
-              {todayTemplate.exercises.slice(0, 3).map((exercise) => (
-                <li key={exercise.id} className="truncate">
-                  {exercise.name}
+              {todayTemplates.map((template) => (
+                <li key={template.id} className="truncate">
+                  {template.name} · {template.exercises.length} ćw.
                 </li>
               ))}
-              {todayTemplate.exercises.length > 3 && (
-                <li className="text-xs text-neutral-500">
-                  +{todayTemplate.exercises.length - 3} więcej
-                </li>
-              )}
             </ul>
           )}
           <div className="flex flex-col gap-2">
@@ -571,8 +605,8 @@ export default function Dashboard() {
               onClick={() =>
                 currentWorkout
                   ? setWorkoutOpen(true)
-                  : todayTemplate
-                    ? void startWorkout(todayTemplate)
+                  : todayTemplates.length > 0
+                    ? void startWorkout(todayTemplates[0])
                     : void startWorkout()
               }
               disabled={workoutLoading}
@@ -582,15 +616,13 @@ export default function Dashboard() {
                 ? "Sprawdzanie…"
                 : currentWorkout
                   ? "Wróć do treningu"
-                  : todayTemplate
+                  : todayTemplates.length > 0
                     ? "Rozpocznij trening"
-                    : todayAssignment?.isRestDay
-                      ? "Mimo to potrenuj"
-                      : "Pusty trening"}
+                    : "Rozpocznij pusty trening"}
             </button>
-            {!currentWorkout && !todayTemplate && templates.length > 0 && (
+            {!currentWorkout && todayTemplates.length > 1 && (
               <div className="flex flex-wrap gap-2">
-                {templates.slice(0, 2).map((template) => (
+                {todayTemplates.slice(1).map((template) => (
                   <button
                     key={template.id}
                     type="button"
@@ -606,94 +638,95 @@ export default function Dashboard() {
           </div>
         </section>
 
-        <section aria-label="Tydzień treningowy" className="mb-8">
+        <section
+          id="weekly-overview"
+          aria-label="Tydzień treningowy"
+          className="mb-8 scroll-mt-5"
+        >
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-base font-semibold">Ten tydzień</h2>
-            <a
-              href="#weekly-plan"
-              className="min-h-11 flex items-center text-sm font-semibold text-lime-300"
-            >
-              Edytuj plan
-            </a>
+            <span className="text-xs text-neutral-500">
+              Ustaw dni w szablonach
+            </span>
           </div>
-          <div className="grid grid-cols-7 gap-1.5">
-            {shortWeekdays.map((day, index) => {
-              const assignment = weeklyPlan?.days.find(
-                (item) => item.dayOfWeek === index,
-              );
-              const scheduledTemplate = templates.find(
-                (template) => template.id === assignment?.templateId,
-              );
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {weekdays.map(({ short, name }, index) => {
+              const scheduledTemplates = templatesByDay[index] ?? [];
               const isToday = index === mondayFirstToday;
+              const firstTemplate = scheduledTemplates[0];
               return (
-                <button
-                  key={day}
-                  type="button"
-                  onClick={() =>
-                    document.getElementById("weekly-plan")?.scrollIntoView({
-                      behavior: "smooth",
-                      block: "start",
-                    })
-                  }
-                  aria-label={`${day}${scheduledTemplate ? `, ${scheduledTemplate.name}` : assignment?.isRestDay ? ", odpoczynek" : ", bez planu"}`}
-                  className={`flex min-h-[58px] min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 transition ${
+                <div
+                  key={short}
+                  className={`flex min-h-14 items-start gap-3 rounded-xl px-3 py-2.5 transition ${
                     isToday
-                      ? "bg-lime-400 text-neutral-950"
-                      : "bg-[var(--surface)] text-[var(--text-secondary)]"
+                      ? "bg-lime-400/10 ring-1 ring-lime-300/30"
+                      : "bg-[var(--surface)]"
                   }`}
                 >
-                  <span className="text-xs font-semibold">{day}</span>
                   <span
-                    className={`h-1.5 w-1.5 rounded-full ${
-                      scheduledTemplate
-                        ? isToday
-                          ? "bg-neutral-950"
-                          : "bg-lime-300"
-                        : assignment?.isRestDay
-                          ? isToday
-                            ? "bg-neutral-950"
-                            : "bg-sky-300"
-                          : "bg-transparent"
+                    className={`w-9 shrink-0 pt-0.5 text-xs font-bold ${
+                      isToday ? "text-lime-300" : "text-neutral-500"
                     }`}
-                  />
-                </button>
+                  >
+                    {short}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs text-neutral-500">{name}</p>
+                    {scheduledTemplates.length > 0 ? (
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {scheduledTemplates.map((template) => (
+                          <a
+                            key={template.id}
+                            href={`#template-${encodeURIComponent(template.id)}`}
+                            className="max-w-full truncate rounded-md bg-white/[0.05] px-2 py-1 text-xs font-semibold text-neutral-200 transition hover:text-lime-300"
+                          >
+                            {template.name}
+                          </a>
+                        ))}
+                      </div>
+                    ) : templatesStatus === "ready" ? (
+                      <p className="mt-1 text-xs italic text-sky-300/80">
+                        Dzień odpoczynku
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-xs italic text-neutral-500">
+                        {templatesStatus === "loading"
+                          ? "Wczytywanie…"
+                          : "Plan niedostępny"}
+                      </p>
+                    )}
+                  </div>
+                  {firstTemplate && (
+                    <button
+                      type="button"
+                      onClick={() => void startWorkout(firstTemplate)}
+                      disabled={workoutLoading}
+                      aria-label={`Rozpocznij ${firstTemplate.name}, ${name}`}
+                      className="min-h-9 shrink-0 rounded-lg bg-lime-400/10 px-2 text-xs font-semibold text-lime-300 transition hover:bg-lime-400/20 disabled:opacity-50"
+                    >
+                      Start
+                    </button>
+                  )}
+                </div>
               );
             })}
           </div>
         </section>
 
-        {templatesStatus === "ready" && (
-          <section
-            aria-label="Podsumowanie treningów"
-            className="mb-8 grid grid-cols-2 gap-3"
-          >
-            <StatCard
-              label="Szablony"
-              value={String(templates.length)}
-              hint="gotowe plany"
-              icon={<DumbbellIcon className="h-5 w-5" />}
-            />
-            <StatCard
-              label="Ćwiczenia"
-              value={String(exerciseCount)}
-              hint="w Twoich planach"
-              icon={<CalendarIcon className="h-5 w-5" />}
-            />
-          </section>
-        )}
-
-        {authStatus === "authenticated" && templatesStatus === "ready" && (
-          <WeeklyPlanner
-            templates={templates}
-            onStartWorkout={(template) => void startWorkout(template)}
-            onActivePlanChange={handleActivePlanChange}
-          />
-        )}
-
         {workoutError && !currentWorkout && (
-          <p role="alert" className="mb-6 rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">
-            {workoutError}
-          </p>
+          <div
+            role="alert"
+            className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200"
+          >
+            <p>{workoutError}</p>
+            <button
+              type="button"
+              onClick={() => setWorkoutRetryKey((current) => current + 1)}
+              className="min-h-10 rounded-lg border border-red-300/20 px-3 font-semibold transition hover:bg-red-300/10"
+            >
+              Spróbuj ponownie
+            </button>
+          </div>
         )}
 
         <section aria-labelledby="templates-heading">
@@ -777,42 +810,13 @@ export default function Dashboard() {
                     setEditingTemplate(selectedTemplate);
                     setModalOpen(true);
                   }}
+                  onDuplicate={duplicateTemplate}
                   onDelete={deleteTemplate}
                   isDeleting={deletingTemplateId === template.id}
                 />
               ))}
             </div>
           )}
-        </section>
-
-        <section
-          id="profile"
-          aria-labelledby="profile-heading"
-          className="mt-12 scroll-mt-6 rounded-2xl border border-white/[0.08] bg-neutral-900/50 p-5 sm:p-6"
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.05] text-neutral-300">
-              <DumbbellIcon className="h-5 w-5" />
-            </div>
-            <div className="min-w-0">
-              <h2 id="profile-heading" className="text-sm font-bold text-white">
-                Konto
-              </h2>
-              <p className="mt-1 truncate text-sm text-neutral-400">
-                {username || "Zalogowany użytkownik"}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() =>
-                void logout(() => router.replace("/login"))
-              }
-              className="ml-auto flex min-h-11 shrink-0 items-center gap-2 rounded-xl border border-white/10 px-4 text-sm font-semibold text-neutral-300 transition hover:border-red-500/40 hover:text-red-300"
-            >
-              <LogoutIcon className="h-4 w-4" />
-              Wyloguj
-            </button>
-          </div>
         </section>
 
         {authStatus === "authenticated" && <WorkoutHistory />}
@@ -831,6 +835,10 @@ export default function Dashboard() {
       )}
       {authStatus === "authenticated" && (
         <>
+          <AccountMenu
+            username={username || "Użytkownik"}
+            onLogout={() => void logout(() => router.replace("/login"))}
+          />
           <MobileNavigation
             onStartWorkout={() => void startWorkout()}
             hasActiveWorkout={currentWorkout !== null}

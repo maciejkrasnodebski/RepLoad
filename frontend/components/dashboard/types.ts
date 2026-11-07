@@ -69,6 +69,7 @@ export type WorkoutTemplate = {
   id: string;
   name: string;
   dayOfWeek: number | null;
+  daysOfWeek: number[];
   color: string | null;
   icon: string | null;
   exercises: TemplateExercise[];

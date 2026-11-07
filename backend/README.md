@@ -25,33 +25,19 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
-## Weekly plans API
+## Template week schedule
 
-All routes require the existing authenticated session cookie.
+Templates can be assigned to multiple weekdays in one request through
+`daysOfWeek` (`0` = Monday, ..., `6` = Sunday). The same template is reused on
+each selected day; schedule changes are made on the template itself. The API
+continues to return the legacy single-day `dayOfWeek` field for older clients,
+and new clients should use `daysOfWeek`. The old weekly-plan endpoints are no
+longer registered.
 
-- `GET /weekly-plans` returns an array of `{ id, name, days }`. Each `days`
-  array contains seven entries shaped as
-  `{ dayOfWeek, templateId, template, isRestDay }`.
-- `POST /weekly-plans` accepts `{ name }` and creates seven initially
-  unassigned day entries.
-- `PATCH /weekly-plans/:id` accepts `{ name?, assignments? }`.
-  `assignments` is a partial update: omitted days stay unchanged; each item is
-  `{ dayOfWeek, templateId, isRestDay }`. Use a null `templateId` and
-  `isRestDay: false` to clear one day, or `templateId: null` and
-  `isRestDay: true` for a rest day. The same template may be assigned to
-  multiple days.
-- `DELETE /weekly-plans/:id` deletes the authenticated user's plan.
-
-The `template` field is null when no template is assigned; otherwise it
-contains the template summary and exercises. Exercise entries include a
-`settings` object with nullable `sets`, `reps`, `weight`, `durationSeconds`,
-`restSeconds`, and `distance` values. Template responses also include nullable
-`color` and `icon`.
-
-The migration preserves `Template.dayOfWeek` and imports existing assignments
-into one plan per affected user. When multiple legacy templates share a
-weekday, the oldest template is assigned in the imported plan; other templates
-and their legacy weekday values remain unchanged.
+The migration adds `Template.daysOfWeek` and preserves existing schedules by
+copying valid `Template.dayOfWeek` and `weekly_plan_days.dayOfWeek` values into
+the new array. Legacy weekly-plan tables remain in the database; the migration
+does not delete them.
 
 Template creation/update remains compatible with `exerciseIds`. New clients
 can send `exercises: [{ exerciseId, sets?, reps?, weight?, durationSeconds?,
@@ -69,10 +55,8 @@ prescription settings into a new session:
 { "templateId": "template-id", "name": "Upper body" }
 ```
 
-It can also start from a scheduled plan day with
-`{ "weeklyPlanId": "plan-id", "dayOfWeek": 1 }`; the day must have an assigned
-workout template. A user has at most one active session; repeated start calls
-return that active session.
+A user has at most one active session; repeated start calls return that active
+session.
 
 - `POST /workouts/:sessionId/exercises` adds `{ "exerciseId": 12 }` or a custom
   `{ "name": "Custom movement" }` entry. `PATCH` and `DELETE`
@@ -130,7 +114,9 @@ Configure the Render service with `backend` as its root directory,
 `npm ci && npm run build` as its build command, and `npm run start:prod` as its
 start command. The build generates the Prisma client from the checked-in
 schema before compiling NestJS; generated Prisma files are intentionally not
-stored in Git.
+stored in Git. The production start command runs `prisma migrate deploy`
+before starting NestJS, so committed migrations are applied before the API
+serves requests.
 
 For local development, copy `.env.example` to `.env` and set the local
 database credentials. The example allows both localhost and the production

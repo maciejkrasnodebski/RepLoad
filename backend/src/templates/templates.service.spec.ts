@@ -23,6 +23,8 @@ const template = {
   id: 'template-1',
   name: 'Nogi',
   dayOfWeek: null,
+  daysOfWeek: [],
+  daysOfWeek: [],
   color: null,
   icon: null,
   createdAt: new Date('2026-11-02T12:00:00Z'),
@@ -75,6 +77,7 @@ describe('TemplatesService', () => {
         id: 'template-1',
         name: 'Nogi',
         dayOfWeek: null,
+        daysOfWeek: [],
         color: null,
         icon: null,
         createdAt: template.createdAt,
@@ -107,17 +110,19 @@ describe('TemplatesService', () => {
     await service.create('00000000-0000-4000-8000-000000000042', {
       name: 'Nogi',
       dayOfWeek: null,
+      daysOfWeek: [],
       exerciseIds: [exercise.id],
     });
 
     expect(database.template.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: {
+        data: expect.objectContaining({
           name: 'Nogi',
           dayOfWeek: null,
           color: null,
           icon: null,
           userId: '00000000-0000-4000-8000-000000000042',
+          daysOfWeek: [],
           exercises: {
             create: [
               {
@@ -126,7 +131,64 @@ describe('TemplatesService', () => {
               },
             ],
           },
-        },
+        }),
+      }),
+    );
+  });
+
+  it('assigns one template to multiple weekdays without a legacy single day', async () => {
+    database.template.create.mockResolvedValue({
+      ...template,
+      daysOfWeek: [0, 4],
+      exercises: [],
+    });
+
+    await service.create('00000000-0000-4000-8000-000000000042', {
+      name: 'PUSH',
+      daysOfWeek: [0, 4],
+      exerciseIds: [],
+    });
+
+    expect(database.template.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          dayOfWeek: null,
+          daysOfWeek: [0, 4],
+        }),
+      }),
+    );
+  });
+
+  it('updates and clears multiple weekday assignments on the template', async () => {
+    database.template.findFirst.mockResolvedValue({ id: template.id });
+    database.template.update.mockResolvedValue({
+      ...template,
+      dayOfWeek: null,
+      daysOfWeek: [0, 4],
+      exercises: [],
+    });
+
+    await service.update('00000000-0000-4000-8000-000000000042', template.id, {
+      daysOfWeek: [0, 4],
+    });
+    expect(database.template.update).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: { daysOfWeek: [0, 4], dayOfWeek: null },
+      }),
+    );
+
+    database.template.update.mockResolvedValue({
+      ...template,
+      dayOfWeek: null,
+      daysOfWeek: [],
+      exercises: [],
+    });
+    await service.update('00000000-0000-4000-8000-000000000042', template.id, {
+      daysOfWeek: [],
+    });
+    expect(database.template.update).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: { daysOfWeek: [], dayOfWeek: null },
       }),
     );
   });
@@ -153,6 +215,7 @@ describe('TemplatesService', () => {
     await service.create('00000000-0000-4000-8000-000000000042', {
       name: 'Pusty plan',
       dayOfWeek: null,
+      daysOfWeek: [],
       exerciseIds: [],
     });
 
@@ -162,6 +225,7 @@ describe('TemplatesService', () => {
         data: {
           name: 'Pusty plan',
           dayOfWeek: null,
+          daysOfWeek: [],
           color: null,
           icon: null,
           userId: '00000000-0000-4000-8000-000000000042',
@@ -367,6 +431,26 @@ describe('TemplatesService', () => {
 
     expect(errors.map((error) => error.property)).toEqual(
       expect.arrayContaining(['name', 'dayOfWeek']),
+    );
+  });
+
+  it('rejects duplicate or out-of-range weekday assignments', async () => {
+    const duplicateDays = plainToInstance(CreateTemplateDto, {
+      name: 'PUSH',
+      daysOfWeek: [0, 0],
+      exerciseIds: [],
+    });
+    const invalidDays = plainToInstance(CreateTemplateDto, {
+      name: 'PULL',
+      daysOfWeek: [7],
+      exerciseIds: [],
+    });
+
+    expect((await validate(duplicateDays)).map((error) => error.property)).toContain(
+      'daysOfWeek',
+    );
+    expect((await validate(invalidDays)).map((error) => error.property)).toContain(
+      'daysOfWeek',
     );
   });
 

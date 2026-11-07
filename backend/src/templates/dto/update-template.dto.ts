@@ -1,5 +1,6 @@
 import {
   ArrayUnique,
+  ArrayMaxSize,
   IsArray,
   IsInt,
   IsOptional,
@@ -42,6 +43,16 @@ export class UpdateTemplateDto {
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(7)
+  @ArrayUnique()
+  @IsInt({ each: true })
+  @Min(0, { each: true })
+  @Max(6, { each: true })
+  daysOfWeek?: number[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(7)
   @ArrayUnique()
   @IsInt({ each: true })
   exerciseIds?: number[];

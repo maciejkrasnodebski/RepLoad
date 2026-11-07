@@ -2,6 +2,7 @@
 
 import {
   BoltIcon,
+  CopyIcon,
   DumbbellIcon,
   FlameIcon,
   TargetIcon,
@@ -14,6 +15,7 @@ type Props = {
   template: WorkoutTemplate;
   onEdit: (t: WorkoutTemplate) => void;
   onStart: (t: WorkoutTemplate) => void;
+  onDuplicate: (t: WorkoutTemplate) => void;
   onDelete: (id: string) => void;
   isDeleting?: boolean;
 };
@@ -47,6 +49,7 @@ export default function TemplateCard({
   template,
   onEdit,
   onStart,
+  onDuplicate,
   onDelete,
   isDeleting = false,
 }: Props) {
@@ -65,6 +68,7 @@ export default function TemplateCard({
 
   return (
     <article
+      id={`template-${template.id}`}
       className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/[0.06] bg-[var(--surface)] p-4 transition duration-200 hover:bg-[var(--surface-raised)] sm:p-5"
       style={{ borderLeftWidth: 3, borderLeftColor: theme.color }}
     >
@@ -92,6 +96,14 @@ export default function TemplateCard({
         <div className="flex shrink-0 items-center gap-1">
           <button
             type="button"
+            onClick={() => onDuplicate(template)}
+            aria-label={`Skopiuj szablon ${template.name}`}
+            className="cursor-pointer rounded-lg p-2 text-neutral-500 transition hover:bg-white/[0.05] hover:text-lime-300"
+          >
+            <CopyIcon className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
             onClick={() => {
               if (window.confirm(`Usunąć szablon „${template.name}”?`)) {
                 onDelete(template.id);
@@ -105,6 +117,16 @@ export default function TemplateCard({
           </button>
         </div>
       </header>
+
+      {template.daysOfWeek.length > 0 && (
+        <p className="mb-3 text-xs text-neutral-500">
+          {template.daysOfWeek
+            .slice()
+            .sort((a, b) => a - b)
+            .map((day) => ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Nd"][day])
+            .join(" · ")}
+        </p>
+      )}
 
       <ul className="mb-5 space-y-2 border-t border-white/[0.06] pt-4 text-sm">
         {template.exercises.slice(0, 4).map((e, index) => (

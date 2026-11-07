@@ -66,7 +66,17 @@ export class TemplatesService {
       const template = await transaction.template.create({
         data: {
           name: dto.name.trim(),
-          dayOfWeek: dto.dayOfWeek ?? null,
+          dayOfWeek:
+            dto.daysOfWeek !== undefined
+              ? dto.daysOfWeek.length === 1
+                ? dto.daysOfWeek[0]
+                : null
+              : (dto.dayOfWeek ?? null),
+          daysOfWeek:
+            dto.daysOfWeek ??
+            (dto.dayOfWeek === undefined || dto.dayOfWeek === null
+              ? []
+              : [dto.dayOfWeek]),
           color: dto.color ?? null,
           icon: dto.icon ?? null,
           userId,
@@ -147,7 +157,15 @@ export class TemplatesService {
 
       const data: Prisma.TemplateUpdateInput = {};
       if (dto.name !== undefined) data.name = dto.name.trim();
-      if (dto.dayOfWeek !== undefined) data.dayOfWeek = dto.dayOfWeek;
+      if (dto.daysOfWeek !== undefined) {
+        data.daysOfWeek = dto.daysOfWeek;
+        data.dayOfWeek =
+          dto.daysOfWeek.length === 1 ? dto.daysOfWeek[0] : null;
+      } else if (dto.dayOfWeek !== undefined) {
+        data.dayOfWeek = dto.dayOfWeek;
+        data.daysOfWeek =
+          dto.dayOfWeek === null ? [] : [dto.dayOfWeek];
+      }
       if (dto.color !== undefined) data.color = dto.color;
       if (dto.icon !== undefined) data.icon = dto.icon;
 
@@ -228,6 +246,7 @@ export class TemplatesService {
       id: template.id,
       name: template.name,
       dayOfWeek: template.dayOfWeek,
+      daysOfWeek: template.daysOfWeek,
       color: template.color,
       icon: template.icon,
       createdAt: template.createdAt,
