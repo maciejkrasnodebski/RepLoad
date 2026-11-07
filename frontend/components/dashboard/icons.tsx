@@ -22,6 +22,27 @@ export const CalendarIcon = ({ className }: IconProps) => (
   </svg>
 );
 
+export const HomeIcon = ({ className }: IconProps) => (
+  <svg {...base} className={className}>
+    <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V10Z" />
+  </svg>
+);
+
+export const UsersIcon = ({ className }: IconProps) => (
+  <svg {...base} className={className}>
+    <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="10" cy="7" r="4" />
+    <path d="M20 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+  </svg>
+);
+
+export const ReceiptIcon = ({ className }: IconProps) => (
+  <svg {...base} className={className}>
+    <path d="M4 3v18l3-2 3 2 3-2 3 2 4-2V3l-4 2-3-2-3 2-3-2-3 2Z" />
+    <path d="M8 9h8M8 13h8M8 17h3" />
+  </svg>
+);
+
 export const BoltIcon = ({ className }: IconProps) => (
   <svg {...base} className={className}>
     <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />

@@ -35,7 +35,7 @@ export class LoginService {
     try {
       const user = await this.prisma.user.create({
         data: { username, passwordHash },
-        select: { id: true, username: true },
+        select: { id: true, username: true, role: true },
       });
       return { user, token: await this.sign(user) };
     } catch (e) {
@@ -64,7 +64,7 @@ export class LoginService {
       );
     }
 
-    const safeUser = { id: user.id, username: user.username };
+    const safeUser = { id: user.id, username: user.username, role: user.role };
     return { user: safeUser, token: await this.sign(safeUser) };
   }
 
@@ -72,7 +72,7 @@ export class LoginService {
     return username.trim().toLowerCase();
   }
 
-  private sign(user: { id: string; username: string }) {
+  private sign(user: { id: string; username: string; role: string }) {
     return this.jwt.signAsync({ sub: user.id, username: user.username });
   }
 }

@@ -31,7 +31,7 @@ export type WorkoutTemplatePayload = {
   daysOfWeek: number[];
   color: string;
   icon: string;
-  exercises: Array<{ exerciseId: number } & Partial<ExerciseSettings>>;
+  exercises: Array<{ exerciseId: string } & Partial<ExerciseSettings>>;
 };
 
 type Props = {
@@ -85,7 +85,7 @@ function isExercise(value: unknown): value is Exercise {
   if (typeof value !== "object" || value === null) return false;
   return (
     "id" in value &&
-    typeof value.id === "number" &&
+    typeof value.id === "string" &&
     "name" in value &&
     typeof value.name === "string" &&
     (!("exerciseType" in value) ||

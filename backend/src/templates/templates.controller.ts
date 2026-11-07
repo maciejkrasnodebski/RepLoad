@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Req,
@@ -26,7 +27,10 @@ export class TemplatesController {
   }
 
   @Get(':id')
-  get(@Req() req: AuthRequest, @Param('id') id: string) {
+  get(
+    @Req() req: AuthRequest,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+  ) {
     return this.templatesService.get(req.user!.sub, id);
   }
 
@@ -38,14 +42,17 @@ export class TemplatesController {
   @Patch(':id')
   update(
     @Req() req: AuthRequest,
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() dto: UpdateTemplateDto,
   ) {
     return this.templatesService.update(req.user!.sub, id, dto);
   }
 
   @Delete(':id')
-  delete(@Req() req: AuthRequest, @Param('id') id: string) {
+  delete(
+    @Req() req: AuthRequest,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+  ) {
     return this.templatesService.delete(req.user!.sub, id);
   }
 }

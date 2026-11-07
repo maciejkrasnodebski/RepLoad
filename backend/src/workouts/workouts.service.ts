@@ -156,7 +156,7 @@ export class WorkoutsService {
 
   async addExercise(userId: string, sessionId: string, dto: AddExerciseDto) {
     const session = await this.requireActive(userId, sessionId);
-    let linked: { id: number; name: string; exerciseType: string } | null =
+    let linked: { id: string; name: string; exerciseType: string } | null =
       null;
     if (dto.exerciseId !== undefined) {
       linked = await this.prisma.exercise.findFirst({
@@ -196,7 +196,7 @@ export class WorkoutsService {
   async updateExercise(
     userId: string,
     sessionId: string,
-    exerciseEntryId: number,
+    exerciseEntryId: string,
     dto: UpdateExerciseDto,
   ) {
     await this.requireActive(userId, sessionId);
@@ -218,7 +218,7 @@ export class WorkoutsService {
   async removeExercise(
     userId: string,
     sessionId: string,
-    exerciseEntryId: number,
+    exerciseEntryId: string,
   ) {
     await this.requireActive(userId, sessionId);
     const result = await this.prisma.workoutSessionExercise.deleteMany({
@@ -231,7 +231,7 @@ export class WorkoutsService {
   async addSeries(
     userId: string,
     sessionId: string,
-    exerciseEntryId: number,
+    exerciseEntryId: string,
     dto: AddSeriesDto,
   ) {
     await this.requireActive(userId, sessionId);
@@ -260,7 +260,7 @@ export class WorkoutsService {
   async updateSeries(
     userId: string,
     sessionId: string,
-    seriesId: number,
+    seriesId: string,
     dto: UpdateSeriesDto,
   ) {
     await this.requireActive(userId, sessionId);
@@ -278,7 +278,7 @@ export class WorkoutsService {
     return this.seriesResponse(series);
   }
 
-  async removeSeries(userId: string, sessionId: string, seriesId: number) {
+  async removeSeries(userId: string, sessionId: string, seriesId: string) {
     await this.requireActive(userId, sessionId);
     const result = await this.prisma.workoutSeries.deleteMany({
       where: { id: seriesId, sessionExercise: { sessionId } },
@@ -425,7 +425,7 @@ export class WorkoutsService {
     return this.getOwnedSession(userId, sessionId);
   }
 
-  async previousPerformance(userId: string, exerciseId: number) {
+  async previousPerformance(userId: string, exerciseId: string) {
     const exercise = await this.prisma.exercise.findFirst({
       where: { id: exerciseId, OR: [{ userId: null }, { userId }] },
       select: { id: true },
@@ -534,7 +534,7 @@ export class WorkoutsService {
   }
 
   private seriesResponse(series: {
-    id: number;
+    id: string;
     order: number;
     reps: number | null;
     weight: Prisma.Decimal | null;

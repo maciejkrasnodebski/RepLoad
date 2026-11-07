@@ -33,4 +33,7 @@ Vercel origin and forwards them to Render.
 ## Mobile experience
 
 The UI supports narrow phone viewports, safe-area insets, touch-friendly
-controls, a fixed mobile navigation bar, and reduced-motion preferences.
+controls, a fixed five-item mobile navigation bar, and reduced-motion
+preferences. Its central quick-action menu creates templates or starts a
+template assigned to the current weekday; when no workout is scheduled, it
+offers no blank-workout start action.

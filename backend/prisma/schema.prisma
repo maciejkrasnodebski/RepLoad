@@ -12,6 +12,7 @@ model User {
   id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   username        String           @unique
   passwordHash    String
+  role            String           @default("user")
   createdAt       DateTime         @default(now())
   templates       Template[]
   exercises       Exercise[]
@@ -22,7 +23,7 @@ model User {
 }
 
 model Exercise {
-  id              Int                      @id @default(autoincrement())
+  id              String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name            String                   @unique
   description     String?
   exerciseType    String
@@ -41,7 +42,7 @@ model Exercise {
 }
 
 model Template {
-  id              String             @id @default(cuid())
+  id              String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name            String
   dayOfWeek       Int?
   daysOfWeek      Int[]              @default([])
@@ -56,9 +57,9 @@ model Template {
 }
 
 model TemplateExercise {
-  id              Int      @id @default(autoincrement())
-  templateId      String
-  exerciseId      Int
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  templateId      String   @db.Uuid
+  exerciseId      String   @db.Uuid
   order           Int
   sets            Int?
   reps            Int?
@@ -74,7 +75,7 @@ model TemplateExercise {
 }
 
 model WeeklyPlan {
-  id        String          @id @default(cuid())
+  id        String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name      String
   userId    String          @db.Uuid
   user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -92,10 +93,10 @@ enum WorkoutSessionStatus {
 }
 
 model WorkoutSession {
-  id           String                   @id @default(cuid())
+  id           String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId       String                   @db.Uuid
   user         User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  templateId   String?
+  templateId   String?                  @db.Uuid
   template     Template?                @relation(fields: [templateId], references: [id], onDelete: SetNull)
   name         String?
   templateName String?
@@ -113,10 +114,10 @@ model WorkoutSession {
 }
 
 model WorkoutSessionExercise {
-  id           Int             @id @default(autoincrement())
-  sessionId    String
+  id           String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId    String          @db.Uuid
   session      WorkoutSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  exerciseId   Int?
+  exerciseId   String?         @db.Uuid
   exercise     Exercise?       @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
   name         String
   exerciseType String?
@@ -131,8 +132,8 @@ model WorkoutSessionExercise {
 }
 
 model WorkoutSeries {
-  id                Int                    @id @default(autoincrement())
-  sessionExerciseId Int
+  id                String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionExerciseId String                 @db.Uuid
   sessionExercise   WorkoutSessionExercise @relation(fields: [sessionExerciseId], references: [id], onDelete: Cascade)
   order             Int
   reps              Int?
@@ -152,10 +153,10 @@ model WorkoutSeries {
 }
 
 model WeeklyPlanDay {
-  id           Int        @id @default(autoincrement())
-  weeklyPlanId String
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  weeklyPlanId String     @db.Uuid
   dayOfWeek    Int
-  templateId   String?
+  templateId   String?    @db.Uuid
   isRestDay    Boolean    @default(false)
   weeklyPlan   WeeklyPlan @relation(fields: [weeklyPlanId], references: [id], onDelete: Cascade)
   template     Template?  @relation(fields: [templateId], references: [id], onDelete: SetNull)

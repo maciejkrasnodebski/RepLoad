@@ -9,10 +9,11 @@ import type { Request } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
 
 export type JwtPayload = { sub: string; username: string };
+export type AuthUser = JwtPayload & { role: string };
 
 export type AuthRequest = Request & {
   cookies?: Record<string, string>;
-  user?: JwtPayload;
+  user?: AuthUser;
 };
 
 @Injectable()
@@ -57,13 +58,13 @@ export class JwtAuthGuard implements CanActivate {
 
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      select: { id: true, username: true },
+      select: { id: true, username: true, role: true },
     });
     if (!user) {
       throw new UnauthorizedException('Sesja wygasła. Zaloguj się ponownie.');
     }
 
-    req.user = { sub: user.id, username: user.username };
+    req.user = { sub: user.id, username: user.username, role: user.role };
     return true;
   }
 

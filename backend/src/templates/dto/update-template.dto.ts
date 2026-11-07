@@ -5,6 +5,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  IsUUID,
   Matches,
   Max,
   MaxLength,
@@ -54,8 +55,8 @@ export class UpdateTemplateDto {
   @IsArray()
   @ArrayMaxSize(7)
   @ArrayUnique()
-  @IsInt({ each: true })
-  exerciseIds?: number[];
+  @IsUUID('4', { each: true })
+  exerciseIds?: string[];
 
   @IsOptional()
   @IsArray()

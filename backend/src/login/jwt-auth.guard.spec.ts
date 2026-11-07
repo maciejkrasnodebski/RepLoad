@@ -42,7 +42,7 @@ describe('JwtAuthGuard', () => {
     );
     expect(prisma.user.findUnique).toHaveBeenCalledWith({
       where: { id: '00000000-0000-4000-8000-000000000017' },
-      select: { id: true, username: true },
+      select: { id: true, username: true, role: true },
     });
   });
 
@@ -51,6 +51,7 @@ describe('JwtAuthGuard', () => {
       verifyAsync: jest.fn().mockResolvedValue({
         sub: '00000000-0000-4000-8000-000000000017',
         username: 'old-name',
+        role: 'admin',
       }),
     } as unknown as JwtService;
     const prisma = {
@@ -58,6 +59,7 @@ describe('JwtAuthGuard', () => {
         findUnique: jest.fn().mockResolvedValue({
           id: '00000000-0000-4000-8000-000000000017',
           username: 'current-name',
+          role: 'user',
         }),
       },
     } as unknown as PrismaService;
@@ -68,6 +70,7 @@ describe('JwtAuthGuard', () => {
     expect(request.user).toEqual({
       sub: '00000000-0000-4000-8000-000000000017',
       username: 'current-name',
+      role: 'user',
     });
   });
 

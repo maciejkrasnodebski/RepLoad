@@ -33,8 +33,10 @@ jest.mock('../prisma/prisma.service', () => ({
 }));
 
 const userId = '00000000-0000-4000-8000-000000000042';
+const sessionExerciseId = '550e8400-e29b-41d4-a716-446655440001';
+const seriesId = '550e8400-e29b-41d4-a716-446655440002';
 const session = {
-  id: 'session-1',
+  id: '550e8400-e29b-41d4-a716-446655440003',
   userId,
   name: null,
   templateId: null,
@@ -127,12 +129,14 @@ describe('WorkoutsService', () => {
 
   it('stores and returns two-decimal series measurements', async () => {
     database.workoutSession.findFirst.mockResolvedValue({ id: session.id });
-    database.workoutSessionExercise.findFirst.mockResolvedValue({ id: 8 });
+    database.workoutSessionExercise.findFirst.mockResolvedValue({
+      id: sessionExerciseId,
+    });
     database.workoutSeries.aggregate.mockResolvedValue({
       _max: { order: 0 },
     });
     database.workoutSeries.create.mockResolvedValue({
-      id: 15,
+      id: seriesId,
       order: 1,
       reps: 8,
       weight: new Prisma.Decimal('42.50'),
@@ -147,7 +151,7 @@ describe('WorkoutsService', () => {
       updatedAt: session.updatedAt,
     });
 
-    const result = await service.addSeries(userId, session.id, 8, {
+    const result = await service.addSeries(userId, session.id, sessionExerciseId, {
       reps: 8,
       weight: 42.5,
       distance: 1.25,
@@ -159,7 +163,7 @@ describe('WorkoutsService', () => {
 
     expect(database.workoutSeries.create).toHaveBeenCalledWith({
       data: {
-        sessionExerciseId: 8,
+        sessionExerciseId,
         order: 1,
         reps: 8,
         weight: new Prisma.Decimal('42.50'),
@@ -244,12 +248,17 @@ describe('WorkoutsService', () => {
     database.workoutSeries.updateMany.mockResolvedValue({ count: 0 });
 
     await expect(
-      service.updateSeries(userId, session.id, 99, { reps: 5 }),
+      service.updateSeries(
+        userId,
+        session.id,
+        '550e8400-e29b-41d4-a716-446655440004',
+        { reps: 5 },
+      ),
     ).rejects.toBeInstanceOf(NotFoundException);
     expect(database.workoutSeries.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          id: 99,
+          id: '550e8400-e29b-41d4-a716-446655440004',
           sessionExercise: { sessionId: session.id },
         },
       }),

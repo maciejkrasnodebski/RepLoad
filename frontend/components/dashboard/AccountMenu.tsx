@@ -5,12 +5,20 @@ import { LogoutIcon, UserIcon } from "./icons";
 
 type Props = {
   username: string;
+  profileOpen: boolean;
   onLogout: () => void;
+  onOpenProfile: () => void;
+  onCloseProfile: () => void;
 };
 
-export default function AccountMenu({ username, onLogout }: Props) {
+export default function AccountMenu({
+  username,
+  profileOpen,
+  onLogout,
+  onOpenProfile,
+  onCloseProfile,
+}: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -37,7 +45,7 @@ export default function AccountMenu({ username, onLogout }: Props) {
     <>
       <div
         ref={rootRef}
-        className="fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-40 md:right-5 md:bottom-5"
+        className="fixed right-5 bottom-5 z-40 hidden md:block"
       >
         {menuOpen && (
           <div
@@ -50,7 +58,7 @@ export default function AccountMenu({ username, onLogout }: Props) {
               role="menuitem"
               onClick={() => {
                 setMenuOpen(false);
-                setProfileOpen(true);
+                onOpenProfile();
               }}
               className="flex min-h-14 w-full items-center gap-3 rounded-xl px-3 text-left transition hover:bg-white/[0.05]"
             >
@@ -70,7 +78,10 @@ export default function AccountMenu({ username, onLogout }: Props) {
             <button
               type="button"
               role="menuitem"
-              onClick={onLogout}
+              onClick={() => {
+                setMenuOpen(false);
+                onLogout();
+              }}
               className="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold text-neutral-300 transition hover:bg-rose-400/10 hover:text-rose-300"
             >
               <LogoutIcon className="h-4 w-4" />
@@ -94,7 +105,7 @@ export default function AccountMenu({ username, onLogout }: Props) {
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-4"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setProfileOpen(false);
+            if (event.target === event.currentTarget) onCloseProfile();
           }}
         >
           <section
@@ -113,7 +124,7 @@ export default function AccountMenu({ username, onLogout }: Props) {
               <button
                 type="button"
                 aria-label="Zamknij profil"
-                onClick={() => setProfileOpen(false)}
+                onClick={onCloseProfile}
                 className="flex h-10 w-10 items-center justify-center rounded-xl text-neutral-400 transition hover:bg-white/[0.06] hover:text-white"
               >
                 ×
@@ -130,6 +141,17 @@ export default function AccountMenu({ username, onLogout }: Props) {
                 </p>
               </div>
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                onCloseProfile();
+                onLogout();
+              }}
+              className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-white/10 text-sm font-semibold text-neutral-300 transition hover:border-rose-300/30 hover:text-rose-300"
+            >
+              <LogoutIcon className="h-4 w-4" />
+              Wyloguj się
+            </button>
           </section>
         </div>
       )}

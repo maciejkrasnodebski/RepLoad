@@ -11,14 +11,14 @@ import {
   Min,
   MinLength,
   IsNumber,
+  IsUUID,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class TemplateExerciseInputDto {
-  @IsInt()
-  @Min(1)
-  exerciseId!: number;
+  @IsUUID('4')
+  exerciseId!: string;
 
   @IsOptional()
   @IsInt()
@@ -88,8 +88,8 @@ export class CreateTemplateDto {
   @IsOptional()
   @IsArray()
   @ArrayUnique()
-  @IsInt({ each: true })
-  exerciseIds?: number[];
+  @IsUUID('4', { each: true })
+  exerciseIds?: string[];
 
   @IsOptional()
   @IsArray()

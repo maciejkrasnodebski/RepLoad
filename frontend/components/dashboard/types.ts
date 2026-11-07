@@ -1,5 +1,5 @@
 export type Exercise = {
-  id: number;
+  id: string;
   name: string;
   exerciseType: string;
   equipment: string | null;
@@ -76,7 +76,7 @@ export type WorkoutTemplate = {
 };
 
 export type WorkoutSeries = {
-  id: number;
+  id: string;
   order: number;
   reps: number | null;
   weight: string | null;
@@ -90,8 +90,8 @@ export type WorkoutSeries = {
 };
 
 export type WorkoutSessionExercise = {
-  id: number;
-  exerciseId: number | null;
+  id: string;
+  exerciseId: string | null;
   name: string;
   exerciseType: string | null;
   order: number;
@@ -142,9 +142,9 @@ export function isWorkoutSession(value: unknown): value is WorkoutSession {
       typeof exercise === "object" &&
       exercise !== null &&
       "id" in exercise &&
-      typeof exercise.id === "number" &&
+      typeof exercise.id === "string" &&
       "exerciseId" in exercise &&
-      (exercise.exerciseId === null || typeof exercise.exerciseId === "number") &&
+      (exercise.exerciseId === null || typeof exercise.exerciseId === "string") &&
       "name" in exercise &&
       typeof exercise.name === "string" &&
       "exerciseType" in exercise &&
@@ -158,7 +158,7 @@ export function isWorkoutSession(value: unknown): value is WorkoutSession {
           typeof series === "object" &&
           series !== null &&
           "id" in series &&
-          typeof series.id === "number" &&
+          typeof series.id === "string" &&
           "order" in series &&
           typeof series.order === "number" &&
           "reps" in series &&

@@ -24,7 +24,7 @@ type SeriesField =
   | "restSeconds";
 
 type ExerciseResult = {
-  id: number;
+  id: string;
   name: string;
   exerciseType: string;
 };
@@ -219,7 +219,7 @@ export default function ActiveWorkout({
   const [exerciseName, setExerciseName] = useState("");
   const [exerciseQuery, setExerciseQuery] = useState("");
   const [exerciseResults, setExerciseResults] = useState<ExerciseResult[]>([]);
-  const [previous, setPrevious] = useState<Record<number, string>>({});
+  const [previous, setPrevious] = useState<Record<string, string>>({});
   const [restUntil, setRestUntil] = useState<number | null>(null);
   const [pausedRestRemaining, setPausedRestRemaining] = useState<number | null>(
     null,
@@ -379,7 +379,7 @@ export default function ActiveWorkout({
               typeof item === "object" &&
               item !== null &&
               "id" in item &&
-              typeof item.id === "number" &&
+              typeof item.id === "string" &&
               "name" in item &&
               typeof item.name === "string" &&
               "exerciseType" in item &&
@@ -429,7 +429,7 @@ export default function ActiveWorkout({
   };
 
   const saveSeries = async (
-    seriesId: number,
+    seriesId: string,
     field: SeriesField | "isDone",
     value: number | boolean | null,
   ): Promise<boolean> => {
@@ -543,7 +543,7 @@ export default function ActiveWorkout({
     direction: -1 | 1,
   ) => {
     const ordered = [...session.exercises].sort(
-      (a, b) => a.order - b.order || a.id - b.id,
+      (a, b) => a.order - b.order || a.id.localeCompare(b.id),
     );
     const index = ordered.findIndex((item) => item.id === exercise.id);
     const other = ordered[index + direction];
@@ -572,7 +572,7 @@ export default function ActiveWorkout({
     }
   };
 
-  const togglePrevious = async (exerciseId: number) => {
+  const togglePrevious = async (exerciseId: string) => {
     if (previous[exerciseId] !== undefined) {
       setPrevious((items) => {
         const next = { ...items };
@@ -582,7 +582,9 @@ export default function ActiveWorkout({
       return;
     }
     try {
-      const response = await request(`/workouts/exercises/${exerciseId}/previous`);
+      const response = await request(
+        `/workouts/exercises/${encodeURIComponent(exerciseId)}/previous`,
+      );
       const data = (await response.json()) as {
         sessions?: Array<{
           startedAt: string;
@@ -862,7 +864,7 @@ export default function ActiveWorkout({
           )}
 
           {[...session.exercises]
-            .sort((a, b) => a.order - b.order || a.id - b.id)
+            .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id))
             .map((exercise, exerciseIndex) => {
               const fields: SeriesField[] = [
                 ...trackingFields(exercise.exerciseType),

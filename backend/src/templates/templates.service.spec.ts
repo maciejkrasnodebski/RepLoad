@@ -11,19 +11,22 @@ jest.mock('../prisma/prisma.service', () => ({
 }));
 
 const exercise = {
-  id: 8,
+  id: '550e8400-e29b-41d4-a716-446655440008',
   name: 'Przysiad',
   exerciseType: 'Siłowe',
   equipment: null,
   muscleGroup: 'Nogi',
   difficultyLevel: null,
 };
+const secondExerciseId = '550e8400-e29b-41d4-a716-446655440009';
+const templateId = '550e8400-e29b-41d4-a716-446655440010';
+const firstTemplateExerciseId = '550e8400-e29b-41d4-a716-446655440015';
+const secondTemplateExerciseId = '550e8400-e29b-41d4-a716-446655440016';
 
 const template = {
-  id: 'template-1',
+  id: templateId,
   name: 'Nogi',
   dayOfWeek: null,
-  daysOfWeek: [],
   daysOfWeek: [],
   color: null,
   icon: null,
@@ -74,7 +77,7 @@ describe('TemplatesService', () => {
       service.list('00000000-0000-4000-8000-000000000042'),
     ).resolves.toEqual([
       {
-        id: 'template-1',
+        id: templateId,
         name: 'Nogi',
         dayOfWeek: null,
         daysOfWeek: [],
@@ -237,10 +240,13 @@ describe('TemplatesService', () => {
 
   it('replaces template exercises in the requested order', async () => {
     database.template.findFirst.mockResolvedValue({ id: template.id });
-    database.exercise.findMany.mockResolvedValue([{ id: 9 }, { id: 8 }]);
+    database.exercise.findMany.mockResolvedValue([
+      { id: secondExerciseId },
+      { id: exercise.id },
+    ]);
     database.templateExercise.findMany.mockResolvedValue([
-      { id: 15, exerciseId: 8 },
-      { id: 16, exerciseId: 9 },
+      { id: firstTemplateExerciseId, exerciseId: exercise.id },
+      { id: secondTemplateExerciseId, exerciseId: secondExerciseId },
     ]);
     database.templateExercise.update.mockResolvedValue({});
     database.templateExercise.deleteMany.mockResolvedValue({ count: 0 });
@@ -250,20 +256,23 @@ describe('TemplatesService', () => {
     });
 
     await service.update('00000000-0000-4000-8000-000000000042', template.id, {
-      exerciseIds: [9, 8],
+      exerciseIds: [secondExerciseId, exercise.id],
     });
 
     expect(database.templateExercise.update).toHaveBeenNthCalledWith(1, {
-      where: { id: 16 },
+      where: { id: secondTemplateExerciseId },
       data: { order: 0 },
     });
     expect(database.templateExercise.update).toHaveBeenNthCalledWith(2, {
-      where: { id: 15 },
+      where: { id: firstTemplateExerciseId },
       data: { order: 1 },
     });
     expect(database.templateExercise.create).not.toHaveBeenCalled();
     expect(database.templateExercise.deleteMany).toHaveBeenCalledWith({
-      where: { templateId: template.id, id: { notIn: [16, 15] } },
+      where: {
+        templateId: template.id,
+        id: { notIn: [secondTemplateExerciseId, firstTemplateExerciseId] },
+      },
     });
   });
 
@@ -271,10 +280,12 @@ describe('TemplatesService', () => {
     database.template.findFirst.mockResolvedValue({ id: template.id });
     database.exercise.findMany.mockResolvedValue([{ id: exercise.id }]);
     database.templateExercise.findMany.mockResolvedValue([
-      { id: 21, exerciseId: exercise.id },
+      { id: firstTemplateExerciseId, exerciseId: exercise.id },
     ]);
     database.templateExercise.update.mockResolvedValue({});
-    database.templateExercise.create.mockResolvedValue({ id: 22 });
+    database.templateExercise.create.mockResolvedValue({
+      id: secondTemplateExerciseId,
+    });
     database.templateExercise.deleteMany.mockResolvedValue({ count: 0 });
     database.template.update.mockResolvedValue({
       ...template,
@@ -294,7 +305,7 @@ describe('TemplatesService', () => {
       }),
     );
     expect(database.templateExercise.update).toHaveBeenCalledWith({
-      where: { id: 21 },
+      where: { id: firstTemplateExerciseId },
       data: { order: 0, sets: 3, reps: 8 },
     });
     expect(database.templateExercise.create).toHaveBeenCalledWith({
@@ -307,7 +318,10 @@ describe('TemplatesService', () => {
       },
     });
     expect(database.templateExercise.deleteMany).toHaveBeenCalledWith({
-      where: { templateId: template.id, id: { notIn: [21] } },
+      where: {
+        templateId: template.id,
+        id: { notIn: [firstTemplateExerciseId] },
+      },
     });
   });
 
@@ -410,11 +424,14 @@ describe('TemplatesService', () => {
     database.template.deleteMany.mockResolvedValue({ count: 1 });
 
     await expect(
-      service.delete('00000000-0000-4000-8000-000000000042', 'template-1'),
+      service.delete(
+        '00000000-0000-4000-8000-000000000042',
+        templateId,
+      ),
     ).resolves.toEqual({ ok: true });
     expect(database.template.deleteMany).toHaveBeenCalledWith({
       where: {
-        id: 'template-1',
+        id: templateId,
         userId: '00000000-0000-4000-8000-000000000042',
       },
     });

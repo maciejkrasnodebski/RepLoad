@@ -5,6 +5,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
   Max,
   Min,
   ValidateNested,
@@ -12,11 +13,11 @@ import {
 
 export class StartWorkoutDto {
   @IsOptional()
-  @IsString()
+  @IsUUID('4')
   templateId?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUUID('4')
   weeklyPlanId?: string;
 
   @IsOptional()
@@ -81,9 +82,8 @@ export class SeriesInputDto {
 
 export class AddExerciseDto {
   @IsOptional()
-  @IsInt()
-  @Min(1)
-  exerciseId?: number;
+  @IsUUID('4')
+  exerciseId?: string;
 
   @IsOptional()
   @IsString()
@@ -122,8 +122,8 @@ export class UpdateSeriesDto extends SeriesInputDto {
 
 export class AutosaveSeriesDto extends SeriesInputDto {
   @IsOptional()
-  @IsInt()
-  id?: number;
+  @IsUUID('4')
+  id?: string;
 
   @IsOptional()
   @IsInt()
@@ -133,8 +133,8 @@ export class AutosaveSeriesDto extends SeriesInputDto {
 
 export class AutosaveExerciseDto {
   @IsOptional()
-  @IsInt()
-  id?: number;
+  @IsUUID('4')
+  id?: string;
 
   @IsOptional()
   @IsInt()

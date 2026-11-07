@@ -53,7 +53,13 @@ export class LoginController {
   @UseGuards(JwtAuthGuard)
   @Get('me')
   me(@Req() req: AuthRequest) {
-    return { user: { id: req.user!.sub, username: req.user!.username } };
+    return {
+      user: {
+        id: req.user!.sub,
+        username: req.user!.username,
+        role: req.user!.role,
+      },
+    };
   }
 
   private setCookie(res: Response, token: string) {

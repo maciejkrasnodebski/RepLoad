@@ -18,16 +18,6 @@ import {
 } from "./types";
 import { API_URL } from "@/lib/api";
 
-const weekdays = [
-  { short: "Pn", name: "Poniedziałek" },
-  { short: "Wt", name: "Wtorek" },
-  { short: "Śr", name: "Środa" },
-  { short: "Cz", name: "Czwartek" },
-  { short: "Pt", name: "Piątek" },
-  { short: "So", name: "Sobota" },
-  { short: "Nd", name: "Niedziela" },
-] as const;
-
 function MiniWorkoutBar({
   session,
   onResume,
@@ -132,7 +122,7 @@ function isWorkoutTemplate(value: unknown): value is WorkoutTemplate {
       typeof exercise !== "object" ||
       exercise === null ||
       !("id" in exercise) ||
-      typeof exercise.id !== "number" ||
+      typeof exercise.id !== "string" ||
       !("name" in exercise) ||
       typeof exercise.name !== "string" ||
       !("exerciseType" in exercise) ||
@@ -197,6 +187,7 @@ export default function Dashboard() {
     null,
   );
   const [modalOpen, setModalOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] =
     useState<WorkoutTemplate | null>(null);
   const [currentWorkout, setCurrentWorkout] = useState<WorkoutSession | null>(
@@ -357,7 +348,7 @@ export default function Dashboard() {
     return () => controller.abort();
   }, [authStatus, router, workoutRetryKey]);
 
-  const startWorkout = async (template?: WorkoutTemplate) => {
+  const startWorkout = async (template: WorkoutTemplate) => {
     if (currentWorkout) {
       setWorkoutOpen(true);
       return;
@@ -369,7 +360,7 @@ export default function Dashboard() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(template ? { templateId: template.id } : {}),
+        body: JSON.stringify({ templateId: template.id }),
       });
       if (response.status === 401) {
         await logout(() => router.replace("/login?session=expired"));
@@ -418,18 +409,17 @@ export default function Dashboard() {
     [templates],
   );
   const mondayFirstToday = todayInfo?.dayIndex ?? -1;
-  const templatesByDay = useMemo(
+  const todayTemplates = useMemo(
     () =>
-      weekdays.map((_, dayIndex) =>
-        templates.filter((template) =>
-          template.daysOfWeek.length > 0
-            ? template.daysOfWeek.includes(dayIndex)
-            : template.dayOfWeek === dayIndex,
-        ),
-      ),
-    [templates],
+      mondayFirstToday < 0
+        ? []
+        : templates.filter((template) =>
+            template.daysOfWeek.length > 0
+              ? template.daysOfWeek.includes(mondayFirstToday)
+              : template.dayOfWeek === mondayFirstToday,
+          ),
+    [mondayFirstToday, templates],
   );
-  const todayTemplates = templatesByDay[mondayFirstToday] ?? [];
   const todayTemplate = todayTemplates[0];
   const formattedDate = todayInfo?.dateLabel ?? "";
 
@@ -565,7 +555,11 @@ export default function Dashboard() {
             />
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-bold tracking-[0.14em] text-lime-300 uppercase">
-                {currentWorkout ? "Trening w toku" : "Dzisiejszy trening"}
+                {currentWorkout
+                  ? "Trening w toku"
+                  : todayTemplates.length > 0
+                    ? "Dzisiejszy trening"
+                    : "Dziś"}
               </p>
               <h1 className="mt-1 truncate text-xl font-bold">
                 {currentWorkout
@@ -573,11 +567,9 @@ export default function Dashboard() {
                     currentWorkout.templateName ||
                     "Trening własny"
                   : todayTemplate?.name ??
-                    (templatesStatus === "loading"
-                      ? "Wczytywanie planu"
-                      : templatesStatus === "error"
-                        ? "Plan niedostępny"
-                        : "Dzień odpoczynku")}
+                    (templatesStatus === "ready"
+                      ? "Dzień odpoczynku"
+                      : "Twój trening")}
               </h1>
               <p className="mt-1 text-sm text-[var(--text-secondary)]">
                 {currentWorkout
@@ -585,132 +577,48 @@ export default function Dashboard() {
                   : todayTemplate
                     ? `${todayTemplates.length} ${todayTemplates.length === 1 ? "szablon" : todayTemplates.length < 5 ? "szablony" : "szablonów"} · ${todayTemplate.exercises.length} ćwiczeń`
                     : templatesStatus === "ready"
-                      ? "Regeneracja też jest częścią planu."
-                      : "Sprawdź połączenie z serwerem."}
+                      ? "Brak zaplanowanego treningu. Odpocznij lub ustaw dzień w szablonie."
+                      : templatesStatus === "loading"
+                        ? "Sprawdzam plan dnia…"
+                        : "Nie udało się pobrać planu dnia."}
               </p>
             </div>
           </div>
-          {todayTemplates.length > 0 && !currentWorkout && (
-            <ul className="mb-4 space-y-1.5 pl-4 text-sm text-[var(--text-secondary)]">
-              {todayTemplates.map((template) => (
-                <li key={template.id} className="truncate">
-                  {template.name} · {template.exercises.length} ćw.
-                </li>
-              ))}
-            </ul>
-          )}
-          <div className="flex flex-col gap-2">
+          {currentWorkout ? (
             <button
               type="button"
-              onClick={() =>
-                currentWorkout
-                  ? setWorkoutOpen(true)
-                  : todayTemplates.length > 0
-                    ? void startWorkout(todayTemplates[0])
-                    : void startWorkout()
-              }
-              disabled={workoutLoading}
-              className="min-h-[52px] w-full rounded-xl bg-lime-400 px-4 text-base font-extrabold text-neutral-950 transition hover:bg-lime-300 active:scale-[0.99] disabled:opacity-60"
+              onClick={() => setWorkoutOpen(true)}
+              className="min-h-[52px] w-full rounded-xl bg-lime-400 px-4 text-base font-extrabold text-neutral-950 transition hover:bg-lime-300 active:scale-[0.99]"
             >
-              {workoutLoading
-                ? "Sprawdzanie…"
-                : currentWorkout
-                  ? "Wróć do treningu"
-                  : todayTemplates.length > 0
-                    ? "Rozpocznij trening"
-                    : "Rozpocznij pusty trening"}
+              Wróć do treningu
             </button>
-            {!currentWorkout && todayTemplates.length > 1 && (
-              <div className="flex flex-wrap gap-2">
-                {todayTemplates.slice(1).map((template) => (
-                  <button
-                    key={template.id}
-                    type="button"
-                    onClick={() => void startWorkout(template)}
-                    disabled={workoutLoading}
-                    className="min-h-11 flex-1 rounded-xl bg-[var(--surface-raised)] px-3 text-sm font-semibold text-neutral-200 transition hover:text-lime-200 disabled:opacity-60"
-                  >
-                    {template.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-
-        <section
-          id="weekly-overview"
-          aria-label="Tydzień treningowy"
-          className="mb-8 scroll-mt-5"
-        >
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-base font-semibold">Ten tydzień</h2>
-            <span className="text-xs text-neutral-500">
-              Ustaw dni w szablonach
-            </span>
-          </div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {weekdays.map(({ short, name }, index) => {
-              const scheduledTemplates = templatesByDay[index] ?? [];
-              const isToday = index === mondayFirstToday;
-              const firstTemplate = scheduledTemplates[0];
-              return (
-                <div
-                  key={short}
-                  className={`flex min-h-14 items-start gap-3 rounded-xl px-3 py-2.5 transition ${
-                    isToday
-                      ? "bg-lime-400/10 ring-1 ring-lime-300/30"
-                      : "bg-[var(--surface)]"
-                  }`}
+          ) : todayTemplates.length > 0 ? (
+            <div className="flex flex-col gap-2">
+              {todayTemplates.map((template) => (
+                <button
+                  key={template.id}
+                  type="button"
+                  onClick={() => void startWorkout(template)}
+                  disabled={workoutLoading}
+                  className="flex min-h-[52px] w-full items-center justify-between gap-3 rounded-xl bg-lime-400 px-4 text-left text-neutral-950 transition hover:bg-lime-300 active:scale-[0.99] disabled:opacity-60"
                 >
-                  <span
-                    className={`w-9 shrink-0 pt-0.5 text-xs font-bold ${
-                      isToday ? "text-lime-300" : "text-neutral-500"
-                    }`}
-                  >
-                    {short}
+                  <span className="min-w-0">
+                    <span className="block truncate font-extrabold">
+                      {todayTemplates.length > 1
+                        ? template.name
+                        : "Rozpocznij trening"}
+                    </span>
+                    <span className="block text-xs text-neutral-800">
+                      {template.name} · {template.exercises.length} ćwiczeń
+                    </span>
                   </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs text-neutral-500">{name}</p>
-                    {scheduledTemplates.length > 0 ? (
-                      <div className="mt-1 flex flex-wrap gap-1.5">
-                        {scheduledTemplates.map((template) => (
-                          <a
-                            key={template.id}
-                            href={`#template-${encodeURIComponent(template.id)}`}
-                            className="max-w-full truncate rounded-md bg-white/[0.05] px-2 py-1 text-xs font-semibold text-neutral-200 transition hover:text-lime-300"
-                          >
-                            {template.name}
-                          </a>
-                        ))}
-                      </div>
-                    ) : templatesStatus === "ready" ? (
-                      <p className="mt-1 text-xs italic text-sky-300/80">
-                        Dzień odpoczynku
-                      </p>
-                    ) : (
-                      <p className="mt-1 text-xs italic text-neutral-500">
-                        {templatesStatus === "loading"
-                          ? "Wczytywanie…"
-                          : "Plan niedostępny"}
-                      </p>
-                    )}
-                  </div>
-                  {firstTemplate && (
-                    <button
-                      type="button"
-                      onClick={() => void startWorkout(firstTemplate)}
-                      disabled={workoutLoading}
-                      aria-label={`Rozpocznij ${firstTemplate.name}, ${name}`}
-                      className="min-h-9 shrink-0 rounded-lg bg-lime-400/10 px-2 text-xs font-semibold text-lime-300 transition hover:bg-lime-400/20 disabled:opacity-50"
-                    >
-                      Start
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                  <span className="shrink-0 text-sm font-bold">Start</span>
+                </button>
+              ))}
+            </div>
+          ) : templatesStatus === "loading" ? (
+            <div className="h-12 animate-pulse rounded-xl bg-white/[0.04]" />
+          ) : null}
         </section>
 
         {workoutError && !currentWorkout && (
@@ -729,11 +637,39 @@ export default function Dashboard() {
           </div>
         )}
 
+        <section
+          id="community"
+          aria-labelledby="community-heading"
+          className="mt-10 scroll-mt-6"
+        >
+          <div className="mb-4">
+            <p className="mb-2 text-xs font-bold tracking-[0.18em] text-lime-400 uppercase">
+              RAZEM SILNIEJ
+            </p>
+            <h2 id="community-heading" className="text-2xl font-bold">
+              Społeczność
+            </h2>
+          </div>
+          <div className="rounded-2xl border border-dashed border-white/10 bg-[var(--surface)] px-5 py-8 text-center">
+            <h3 className="font-bold text-white">Społeczność w przygotowaniu</h3>
+            <p className="mx-auto mt-2 max-w-sm text-sm text-neutral-400">
+              Nie ma jeszcze aktywności społecznościowej do wyświetlenia.
+            </p>
+          </div>
+        </section>
+
         <section aria-labelledby="templates-heading">
-          <div className="mb-5 flex items-center justify-between">
+          <div className="mb-5 flex items-center justify-between gap-3">
             <h2 id="templates-heading" className="text-xl font-bold">
               Moje szablony
             </h2>
+            <AddTemplateButton
+              className="min-h-11 rounded-xl px-4 py-2.5 text-sm"
+              onClick={() => {
+                setEditingTemplate(null);
+                setModalOpen(true);
+              }}
+            />
             {templatesStatus === "ready" && sorted.length > 0 && (
               <span className="text-sm text-neutral-500">{sorted.length}</span>
             )}
@@ -837,10 +773,21 @@ export default function Dashboard() {
         <>
           <AccountMenu
             username={username || "Użytkownik"}
+            profileOpen={profileOpen}
             onLogout={() => void logout(() => router.replace("/login"))}
+            onOpenProfile={() => setProfileOpen(true)}
+            onCloseProfile={() => setProfileOpen(false)}
           />
           <MobileNavigation
-            onStartWorkout={() => void startWorkout()}
+            todayTemplates={todayTemplates}
+            workoutLoading={workoutLoading}
+            onCreateTemplate={() => {
+              setEditingTemplate(null);
+              setModalOpen(true);
+            }}
+            onStartWorkout={(template) => void startWorkout(template)}
+            onResumeWorkout={() => setWorkoutOpen(true)}
+            onProfile={() => setProfileOpen(true)}
             hasActiveWorkout={currentWorkout !== null}
           />
           {currentWorkout && !workoutOpen && (

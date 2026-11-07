@@ -116,14 +116,14 @@ export class TemplatesService {
           orderBy: [{ order: 'asc' }, { id: 'asc' }],
           select: { id: true, exerciseId: true },
         });
-        const rowsByExercise = new Map<number, typeof existingRows>();
+        const rowsByExercise = new Map<string, typeof existingRows>();
         for (const row of existingRows) {
           const rows = rowsByExercise.get(row.exerciseId) ?? [];
           rows.push(row);
           rowsByExercise.set(row.exerciseId, rows);
         }
 
-        const retainedIds: number[] = [];
+        const retainedIds: string[] = [];
         for (const [order, exercise] of exercises.entries()) {
           const existingRow = rowsByExercise.get(exercise.exerciseId)?.shift();
           const data = {
@@ -190,7 +190,7 @@ export class TemplatesService {
   private async assertAccessibleExercises(
     transaction: Prisma.TransactionClient,
     userId: string,
-    exerciseIds: number[],
+    exerciseIds: string[],
   ) {
     if (exerciseIds.length === 0) return;
     const uniqueExerciseIds = [...new Set(exerciseIds)];
