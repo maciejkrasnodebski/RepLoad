@@ -37,3 +37,11 @@ controls, a fixed five-item mobile navigation bar, and reduced-motion
 preferences. Its central quick-action menu creates templates or starts a
 template assigned to the current weekday; when no workout is scheduled, it
 offers no blank-workout start action.
+
+## Android app download
+
+The current RepLoad APK is served as a single public static asset at
+`/downloads/RepLoad.apk` (for example, `https://repload.vercel.app/downloads/RepLoad.apk`).
+The response forces an APK download with its original filename and Android
+package MIME type. Replace the tracked file in `public/downloads/` when
+publishing a newer APK.

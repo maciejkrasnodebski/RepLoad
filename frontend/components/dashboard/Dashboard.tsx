@@ -17,6 +17,7 @@ import {
   type WorkoutTemplate,
 } from "./types";
 import { API_URL } from "@/lib/api";
+import DownloadAppButton from "@/components/DownloadAppButton";
 
 function MiniWorkoutBar({
   session,
@@ -538,6 +539,7 @@ export default function Dashboard() {
               Rep<span className="text-lime-400">Load</span>
             </span>
           </div>
+          <DownloadAppButton className="min-h-10 px-3 text-xs sm:text-sm" />
         </header>
 
         <section className="mb-6">

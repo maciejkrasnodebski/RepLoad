@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { getSafeReturnPath } from "@/lib/return-to";
 import { API_URL } from "@/lib/api";
+import DownloadAppButton from "@/components/DownloadAppButton";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -250,6 +251,7 @@ export default function LoginForm() {
           >
             Dołącz do RepLoad
           </Link>
+          <DownloadAppButton className="mt-4 w-full" />
         </div>
       </div>
     </div>
