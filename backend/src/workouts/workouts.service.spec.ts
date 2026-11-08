@@ -56,6 +56,7 @@ const database = {
     findMany: jest.fn(),
     create: jest.fn(),
     updateMany: jest.fn(),
+    deleteMany: jest.fn(),
   },
   workoutSessionExercise: {
     findFirst: jest.fn(),
@@ -111,6 +112,17 @@ describe('WorkoutsService', () => {
       status: 'ACTIVE',
       exercises: [],
     });
+    expect(database.workoutSession.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId, status: 'ACTIVE' },
+      }),
+    );
+  });
+
+  it('returns null normally when the user has no active workout', async () => {
+    database.workoutSession.findFirst.mockResolvedValue(null);
+
+    await expect(service.current(userId)).resolves.toBeNull();
     expect(database.workoutSession.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { userId, status: 'ACTIVE' },
@@ -241,6 +253,36 @@ describe('WorkoutsService', () => {
         where: { userId, status: { in: ['COMPLETED', 'CANCELLED'] } },
       }),
     );
+  });
+
+  it('deletes only a history session belonging to the user', async () => {
+    database.workoutSession.deleteMany.mockResolvedValue({ count: 1 });
+
+    await expect(
+      service.deleteHistoryEntry(userId, session.id),
+    ).resolves.toEqual({ ok: true });
+    expect(database.workoutSession.deleteMany).toHaveBeenCalledWith({
+      where: {
+        id: session.id,
+        userId,
+        status: { in: ['COMPLETED', 'CANCELLED'] },
+      },
+    });
+  });
+
+  it('does not delete active sessions or sessions owned by another user', async () => {
+    database.workoutSession.deleteMany.mockResolvedValue({ count: 0 });
+
+    await expect(
+      service.deleteHistoryEntry(userId, session.id),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(database.workoutSession.deleteMany).toHaveBeenCalledWith({
+      where: {
+        id: session.id,
+        userId,
+        status: { in: ['COMPLETED', 'CANCELLED'] },
+      },
+    });
   });
 
   it('cannot mutate a series belonging to another user session', async () => {

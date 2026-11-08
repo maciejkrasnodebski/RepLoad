@@ -8,7 +8,7 @@ import AddWorkoutModal, {
 import { DumbbellIcon, PlusIcon } from "./icons";
 import AccountMenu from "./AccountMenu";
 import MobileNavigation from "./MobileNavigation";
-import TemplateCard from "./TemplateCard";
+import TemplateCarousel from "./TemplateCarousel";
 import ActiveWorkout from "./ActiveWorkout";
 import WorkoutHistory from "./WorkoutHistory";
 import {
@@ -76,7 +76,7 @@ function AddTemplateButton({
       className={`group flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-lime-400 px-6 py-3.5 font-bold text-neutral-950 shadow-lg shadow-lime-400/20 transition hover:bg-lime-300 hover:shadow-lime-400/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300 active:scale-[0.98] ${className}`}
     >
       <PlusIcon className="h-5 w-5 transition group-hover:rotate-90" />
-      Nowy szablon
+      Dodaj nowy szablon
     </button>
   );
 }
@@ -318,6 +318,7 @@ export default function Dashboard() {
     const controller = new AbortController();
     const loadCurrentWorkout = async () => {
       setWorkoutLoading(true);
+      setWorkoutError(null);
       try {
         const response = await fetch(`${API_URL}/workouts/current`, {
           credentials: "include",
@@ -329,6 +330,7 @@ export default function Dashboard() {
         }
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data: unknown = await response.json();
+        if (controller.signal.aborted) return;
         if (data !== null && !isWorkoutSession(data)) {
           throw new Error("Nieprawidłowy format aktywnego treningu.");
         }
@@ -658,20 +660,23 @@ export default function Dashboard() {
           </div>
         </section>
 
-        <section aria-labelledby="templates-heading">
-          <div className="mb-5 flex items-center justify-between gap-3">
-            <h2 id="templates-heading" className="text-xl font-bold">
+        <section aria-labelledby="templates-heading" className="min-w-0">
+          <div className="mb-6 flex flex-col items-center text-center">
+            <h2 id="templates-heading" className="text-2xl font-bold">
               Moje szablony
             </h2>
             <AddTemplateButton
-              className="min-h-11 rounded-xl px-4 py-2.5 text-sm"
+              className="mt-4 min-h-11 rounded-xl px-5 py-2.5 text-sm"
               onClick={() => {
                 setEditingTemplate(null);
                 setModalOpen(true);
               }}
             />
             {templatesStatus === "ready" && sorted.length > 0 && (
-              <span className="text-sm text-neutral-500">{sorted.length}</span>
+              <span className="mt-3 text-xs text-neutral-500">
+                {sorted.length}{" "}
+                {sorted.length === 1 ? "zapisany szablon" : "zapisane szablony"}
+              </span>
             )}
           </div>
 
@@ -687,12 +692,12 @@ export default function Dashboard() {
           {templatesStatus === "loading" && (
             <div
               aria-label="Wczytywanie szablonów"
-              className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+              className="flex gap-4 overflow-hidden px-1 pb-3"
             >
               {[0, 1, 2].map((item) => (
                 <div
                   key={item}
-                  className="h-52 animate-pulse rounded-2xl border border-white/10 bg-neutral-900/70"
+                  className="h-64 w-[84%] max-w-[23rem] shrink-0 animate-pulse rounded-2xl border border-white/10 bg-neutral-900/70 sm:w-[min(70%,23rem)] md:w-[min(48%,23rem)]"
                 />
               ))}
             </div>
@@ -723,35 +728,23 @@ export default function Dashboard() {
               <p className="mt-2 max-w-sm text-sm text-neutral-400">
                 Utwórz pierwszy szablon, aby szybko przygotować się do treningu.
               </p>
-              <AddTemplateButton
-                className="mt-6"
-                onClick={() => {
-                  setEditingTemplate(null);
-                  setModalOpen(true);
-                }}
-              />
             </div>
           )}
 
           {templatesStatus === "ready" && sorted.length > 0 && (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {sorted.map((template) => (
-                <TemplateCard
-                  key={template.id}
-                  template={template}
-                  onStart={(selectedTemplate) =>
-                    void startWorkout(selectedTemplate)
-                  }
-                  onEdit={(selectedTemplate) => {
-                    setEditingTemplate(selectedTemplate);
-                    setModalOpen(true);
-                  }}
-                  onDuplicate={duplicateTemplate}
-                  onDelete={deleteTemplate}
-                  isDeleting={deletingTemplateId === template.id}
-                />
-              ))}
-            </div>
+            <TemplateCarousel
+              templates={sorted}
+              deletingTemplateId={deletingTemplateId}
+              onStart={(selectedTemplate) =>
+                void startWorkout(selectedTemplate)
+              }
+              onEdit={(selectedTemplate) => {
+                setEditingTemplate(selectedTemplate);
+                setModalOpen(true);
+              }}
+              onDuplicate={duplicateTemplate}
+              onDelete={deleteTemplate}
+            />
           )}
         </section>
 

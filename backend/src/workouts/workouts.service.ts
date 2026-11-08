@@ -425,6 +425,18 @@ export class WorkoutsService {
     return this.getOwnedSession(userId, sessionId);
   }
 
+  async deleteHistoryEntry(userId: string, sessionId: string) {
+    const result = await this.prisma.workoutSession.deleteMany({
+      where: {
+        id: sessionId,
+        userId,
+        status: { in: ['COMPLETED', 'CANCELLED'] },
+      },
+    });
+    if (!result.count) throw new NotFoundException('Workout not found.');
+    return { ok: true };
+  }
+
   async previousPerformance(userId: string, exerciseId: string) {
     const exercise = await this.prisma.exercise.findFirst({
       where: { id: exerciseId, OR: [{ userId: null }, { userId }] },

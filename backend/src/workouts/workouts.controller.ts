@@ -147,4 +147,13 @@ export class WorkoutsController {
   ) {
     return this.workouts.detail(req.user!.sub, sessionId);
   }
+
+  @Delete(':sessionId')
+  deleteHistoryEntry(
+    @Req() req: AuthRequest,
+    @Param('sessionId', new ParseUUIDPipe({ version: '4' }))
+    sessionId: string,
+  ) {
+    return this.workouts.deleteHistoryEntry(req.user!.sub, sessionId);
+  }
 }

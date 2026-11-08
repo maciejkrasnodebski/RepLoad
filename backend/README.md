@@ -89,7 +89,10 @@ session.
   returns the latest completed/cancelled sessions (`limit` 1–100, default 50),
   `GET /workouts/:sessionId` returns a session detail, and
   `GET /workouts/exercises/:exerciseId/previous` returns the latest completed
-  performance for that accessible exercise.
+  performance for that accessible exercise. `DELETE /workouts/:sessionId`
+  removes only a completed or cancelled session belonging to the authenticated
+  user; its exercise entries and series are deleted by the database's cascade
+  relations, while the source template is retained.
 
 Session responses contain `{ id, name, templateId, templateName, status,
 startedAt, endedAt, exercises }`; each exercise entry includes its copied
