@@ -42,6 +42,11 @@ export class AdminExercisesController {
     return this.exercisesService.listGlobal(query);
   }
 
+  @Get('exercises/stats')
+  stats() {
+    return this.exercisesService.globalStats();
+  }
+
   @Post('exercises')
   create(@Body() dto: CreateExerciseDto) {
     return this.exercisesService.createGlobal(dto);

@@ -28,7 +28,17 @@ BACKEND_URL=https://repload.onrender.com
 ```
 
 Deployments use `npm run build`. The frontend API proxy keeps requests on the
-Vercel origin and forwards them to Render.
+Vercel origin and forwards them to Render. The database connection string and
+JWT secret belong only in the Render backend environment, never in Vercel
+frontend variables.
+
+The `/panel-admin` route checks identity with `/auth/me`, then asks the
+protected admin API to authorize the request. The API validates the JWT
+identity and reads the current `role` from PostgreSQL for every admin request;
+the role returned to the browser is not used to grant access. Since the backend
+runs as a persistent Render service rather than a Vercel function, database
+connections are managed by its Prisma PostgreSQL adapter and must be configured
+on Render.
 
 ## Mobile experience
 

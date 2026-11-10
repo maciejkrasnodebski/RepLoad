@@ -139,6 +139,21 @@ export class ExercisesService {
     });
   }
 
+  async globalStats() {
+    const where = { isActive: true, userId: null };
+    const [exerciseCount, muscleGroups] = await Promise.all([
+      this.prisma.exercise.count({ where }),
+      this.prisma.exercise.groupBy({ by: ['muscleGroup'], where }),
+    ]);
+
+    return {
+      exerciseCount,
+      muscleGroupCount: muscleGroups.filter(
+        ({ muscleGroup }) => muscleGroup?.trim(),
+      ).length,
+    };
+  }
+
   async create(userId: string, dto: CreateExerciseDto) {
     const name = this.normalizeName(dto.name);
     await this.ensureUniquePerUser(name, userId, false);

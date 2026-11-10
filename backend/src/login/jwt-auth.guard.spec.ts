@@ -1,4 +1,7 @@
-import { UnauthorizedException } from '@nestjs/common';
+import {
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import type { ExecutionContext } from '@nestjs/common';
 import type { JwtService } from '@nestjs/jwt';
 import type { PrismaService } from '../prisma/prisma.service';
@@ -88,5 +91,27 @@ describe('JwtAuthGuard', () => {
       UnauthorizedException,
     );
     expect(prisma.user.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('fails closed with a safe response when the user lookup fails', async () => {
+    const jwt = {
+      verifyAsync: jest.fn().mockResolvedValue({
+        sub: '00000000-0000-4000-8000-000000000017',
+        username: 'user',
+      }),
+    } as unknown as JwtService;
+    const prisma = {
+      user: {
+        findUnique: jest.fn().mockRejectedValue(new Error('database details')),
+      },
+    } as unknown as PrismaService;
+    const guard = new JwtAuthGuard(jwt, prisma);
+    const { context } = createContext({ token: 'valid-token' });
+
+    const result = guard.canActivate(context);
+    await expect(result).rejects.toBeInstanceOf(ServiceUnavailableException);
+    await expect(result).rejects.toMatchObject({
+      message: 'Nie można teraz zweryfikować sesji. Spróbuj ponownie później.',
+    });
   });
 });

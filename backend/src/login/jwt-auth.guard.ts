@@ -2,6 +2,8 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
+  Logger,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -18,6 +20,8 @@ export type AuthRequest = Request & {
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
+  private readonly logger = new Logger(JwtAuthGuard.name);
+
   constructor(
     private readonly jwt: JwtService,
     private readonly prisma: PrismaService,
@@ -56,10 +60,21 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException();
     }
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: payload.sub },
-      select: { id: true, username: true, role: true },
-    });
+    let user: { id: string; username: string; role: string } | null;
+    try {
+      user = await this.prisma.user.findUnique({
+        where: { id: payload.sub },
+        select: { id: true, username: true, role: true },
+      });
+    } catch (error) {
+      this.logger.error(
+        'Database user verification failed; request denied.',
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw new ServiceUnavailableException(
+        'Nie można teraz zweryfikować sesji. Spróbuj ponownie później.',
+      );
+    }
     if (!user) {
       throw new UnauthorizedException('Sesja wygasła. Zaloguj się ponownie.');
     }

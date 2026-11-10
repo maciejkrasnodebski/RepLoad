@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { LogoutIcon, UserIcon } from "./icons";
 
 type Props = {
   username: string;
+  role: string;
   profileOpen: boolean;
   onLogout: () => void;
   onOpenProfile: () => void;
@@ -13,6 +15,7 @@ type Props = {
 
 export default function AccountMenu({
   username,
+  role,
   profileOpen,
   onLogout,
   onOpenProfile,
@@ -74,6 +77,19 @@ export default function AccountMenu({
                 </span>
               </span>
             </button>
+            {role === "admin" && (
+              <Link
+                href="/panel-admin"
+                role="menuitem"
+                onClick={() => setMenuOpen(false)}
+                className="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-sm font-semibold text-lime-300 transition hover:bg-lime-400/10"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-lime-400/10">
+                  ⚙
+                </span>
+                Panel administratora
+              </Link>
+            )}
             <div className="my-1 border-t border-white/[0.07]" />
             <button
               type="button"
@@ -141,6 +157,16 @@ export default function AccountMenu({
                 </p>
               </div>
             </div>
+            {role === "admin" && (
+              <Link
+                href="/panel-admin"
+                onClick={onCloseProfile}
+                className="mt-3 flex min-h-12 w-full items-center gap-3 rounded-xl border border-lime-400/15 px-4 text-sm font-semibold text-lime-300 transition hover:bg-lime-400/10"
+              >
+                <span aria-hidden="true">⚙</span>
+                Panel administratora
+              </Link>
+            )}
             <button
               type="button"
               onClick={() => {

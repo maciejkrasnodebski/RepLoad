@@ -56,6 +56,10 @@ again.
 
 New users receive the `user` role. The role used for an authenticated request
 is reloaded from the database, not trusted from the JWT or request body.
+Every admin API request additionally looks up the authenticated UUID and its
+current role directly in PostgreSQL. Role changes therefore take effect on the
+next request; missing users, non-admin roles, and database lookup failures
+never grant access.
 
 ## Workout history API
 
@@ -123,7 +127,9 @@ Render (never commit production secrets):
 Render supplies `PORT`. The Vercel project should use `frontend` as its root
 directory and set `BACKEND_URL=https://repload.onrender.com`. The frontend
 proxies API requests through its own origin, allowing the HttpOnly session
-cookie to work across desktop and mobile browsers.
+cookie to work across desktop and mobile browsers. Set `DATABASE_URL` and
+`JWT_SECRET` only in the Render backend environment; the Vercel frontend needs
+`BACKEND_URL` but must not receive database credentials.
 
 Configure the Render service with `backend` as its root directory,
 `npm ci && npm run build` as its build command, and `npm run start:prod` as its

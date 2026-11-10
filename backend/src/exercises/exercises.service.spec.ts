@@ -11,6 +11,31 @@ jest.mock('../generated/prisma/client', () => ({
 }));
 
 describe('ExercisesService', () => {
+  it('returns global exercise and distinct muscle-group counts', async () => {
+    const count = jest.fn().mockResolvedValue(4);
+    const groupBy = jest.fn().mockResolvedValue([
+      { muscleGroup: 'Klatka piersiowa' },
+      { muscleGroup: 'Plecy' },
+      { muscleGroup: null },
+      { muscleGroup: '   ' },
+    ]);
+    const service = new ExercisesService({
+      exercise: { count, groupBy },
+    } as unknown as PrismaService);
+
+    await expect(service.globalStats()).resolves.toEqual({
+      exerciseCount: 4,
+      muscleGroupCount: 2,
+    });
+    expect(count).toHaveBeenCalledWith({
+      where: { isActive: true, userId: null },
+    });
+    expect(groupBy).toHaveBeenCalledWith({
+      by: ['muscleGroup'],
+      where: { isActive: true, userId: null },
+    });
+  });
+
   it('searches only global and authenticated-user exercises', async () => {
     const findMany = jest.fn().mockResolvedValue([]);
     const service = new ExercisesService({

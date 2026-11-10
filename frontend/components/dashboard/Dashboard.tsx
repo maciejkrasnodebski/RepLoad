@@ -179,6 +179,7 @@ export default function Dashboard() {
   const router = useRouter();
   const [authStatus, setAuthStatus] = useState<AuthStatus>("checking");
   const [username, setUsername] = useState("");
+  const [userRole, setUserRole] = useState("");
   const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
   const [templatesStatus, setTemplatesStatus] =
     useState<TemplatesStatus>("loading");
@@ -236,6 +237,9 @@ export default function Dashboard() {
         const data = await res.json();
         if (typeof data?.user?.username === "string") {
           setUsername(data.user.username);
+        }
+        if (typeof data?.user?.role === "string") {
+          setUserRole(data.user.role);
         }
         setAuthStatus("authenticated");
       } catch (error) {
@@ -768,6 +772,7 @@ export default function Dashboard() {
         <>
           <AccountMenu
             username={username || "Użytkownik"}
+            role={userRole}
             profileOpen={profileOpen}
             onLogout={() => void logout(() => router.replace("/login"))}
             onOpenProfile={() => setProfileOpen(true)}
