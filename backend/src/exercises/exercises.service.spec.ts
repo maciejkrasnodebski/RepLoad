@@ -14,14 +14,15 @@ describe('ExercisesService', () => {
   it('searches only global and authenticated-user exercises', async () => {
     const findMany = jest.fn().mockResolvedValue([]);
     const service = new ExercisesService({
-      exercise: { findMany },
+      exercise: { findMany, findFirst: jest.fn().mockResolvedValue(null) },
     } as unknown as PrismaService);
 
     await service.search('00000000-0000-4000-8000-000000000017', 'squat');
 
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: {
+        where: expect.objectContaining({
+          isActive: true,
           AND: [
             {
               OR: [
@@ -38,7 +39,7 @@ describe('ExercisesService', () => {
               ],
             },
           ],
-        },
+        }),
         take: 25,
       }),
     );
@@ -77,8 +78,9 @@ describe('ExercisesService', () => {
       muscleGroup: null,
       difficultyLevel: null,
     });
+    const findFirst = jest.fn().mockResolvedValue(null);
     const service = new ExercisesService({
-      exercise: { create },
+      exercise: { create, findFirst },
     } as unknown as PrismaService);
 
     await service.create('00000000-0000-4000-8000-000000000017', {
@@ -87,7 +89,7 @@ describe('ExercisesService', () => {
 
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: {
+        data: expect.objectContaining({
           name: 'Przysiad',
           user: { connect: { id: '00000000-0000-4000-8000-000000000017' } },
           exerciseType: 'Inne',
@@ -95,7 +97,8 @@ describe('ExercisesService', () => {
           equipment: null,
           muscleGroup: null,
           difficultyLevel: null,
-        },
+          isActive: true,
+        }),
       }),
     );
   });

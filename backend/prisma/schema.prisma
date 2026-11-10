@@ -24,7 +24,7 @@ model User {
 
 model Exercise {
   id              String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name            String                   @unique
+  name            String
   description     String?
   exerciseType    String
   equipment       String?
@@ -32,11 +32,13 @@ model Exercise {
   difficultyLevel String?
   userId          String?                  @db.Uuid
   user            User?                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isActive        Boolean                  @default(true)
   templates       TemplateExercise[]
   workoutSessions WorkoutSessionExercise[]
   createdAt       DateTime                 @default(now())
   updatedAt       DateTime                 @updatedAt
 
+  @@unique([name, userId])
   @@index([userId])
   @@map("exercises")
 }
