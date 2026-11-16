@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import AddWorkoutModal, {
   type WorkoutTemplatePayload,
 } from "./AddWorkoutModal";
-import { DumbbellIcon, PlusIcon } from "./icons";
+import { DumbbellIcon, PlusIcon, UserIcon } from "./icons";
 import AccountMenu from "./AccountMenu";
 import MobileNavigation from "./MobileNavigation";
 import TemplateCarousel from "./TemplateCarousel";
@@ -17,7 +17,6 @@ import {
   type WorkoutTemplate,
 } from "./types";
 import { API_URL } from "@/lib/api";
-import DownloadAppButton from "@/components/DownloadAppButton";
 
 function MiniWorkoutBar({
   session,
@@ -203,6 +202,11 @@ export default function Dashboard() {
     dayIndex: number;
     dateLabel: string;
   } | null>(null);
+
+  const requestLogout = () => {
+    if (!window.confirm("Czy na pewno chcesz się wylogować?")) return;
+    void logout(() => router.replace("/login"));
+  };
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -543,7 +547,15 @@ export default function Dashboard() {
               Rep<span className="text-lime-400">Load</span>
             </span>
           </div>
-          <DownloadAppButton className="min-h-10 px-3 text-xs sm:text-sm" />
+          <button
+            type="button"
+            onClick={requestLogout}
+            aria-label="Wyloguj się"
+            title="Wyloguj się"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-[var(--surface)] text-[var(--text-secondary)] transition hover:border-rose-300/40 hover:text-rose-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime-300"
+          >
+            <UserIcon className="h-5 w-5" />
+          </button>
         </header>
 
         <section className="mb-6">
@@ -774,7 +786,7 @@ export default function Dashboard() {
             username={username || "Użytkownik"}
             role={userRole}
             profileOpen={profileOpen}
-            onLogout={() => void logout(() => router.replace("/login"))}
+            onLogout={requestLogout}
             onOpenProfile={() => setProfileOpen(true)}
             onCloseProfile={() => setProfileOpen(false)}
           />

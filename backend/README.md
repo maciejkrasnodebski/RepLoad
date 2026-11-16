@@ -61,6 +61,10 @@ current role directly in PostgreSQL. Role changes therefore take effect on the
 next request; missing users, non-admin roles, and database lookup failures
 never grant access.
 
+The exercise soft-delete flag (`exercises.isActive`) is installed by the
+`20261116195000_add_exercise_active_flag` migration. Production startup applies
+pending Prisma migrations before serving requests.
+
 ## Workout history API
 
 All workout routes require the authenticated `token` cookie. User IDs and JWT
