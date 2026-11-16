@@ -14,12 +14,25 @@ model User {
   passwordHash    String
   role            String           @default("user")
   createdAt       DateTime         @default(now())
+  authSessions    AuthSession[]
   templates       Template[]
   exercises       Exercise[]
   weeklyPlans     WeeklyPlan[]
   workoutSessions WorkoutSession[]
 
   @@map("user")
+}
+
+model AuthSession {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("auth_sessions")
 }
 
 model Exercise {

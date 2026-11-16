@@ -14,9 +14,9 @@ import { RegisterDto } from './dto/register.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import type { AuthRequest } from './jwt-auth.guard';
 import { LoginService } from './login.service';
+import { SESSION_DURATION_MS } from './login.constants';
 
 const COOKIE_NAME = 'token';
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
 @Controller('auth')
 export class LoginController {
@@ -45,8 +45,23 @@ export class LoginController {
 
   @Post('logout')
   @HttpCode(200)
-  logout(@Res({ passthrough: true }) res: Response) {
-    res.clearCookie(COOKIE_NAME, { path: '/' });
+  async logout(
+    @Req() req: AuthRequest,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const requestCookies = (
+      req as unknown as { cookies?: Record<string, unknown> }
+    ).cookies;
+    const token = requestCookies?.token;
+    await this.loginService.logout(
+      typeof token === 'string' ? token : undefined,
+    );
+    res.clearCookie(COOKIE_NAME, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+    });
     return { ok: true };
   }
 
@@ -67,7 +82,7 @@ export class LoginController {
       httpOnly: true,
       sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
-      maxAge: SEVEN_DAYS_MS,
+      maxAge: SESSION_DURATION_MS,
       path: '/',
     });
   }

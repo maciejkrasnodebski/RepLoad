@@ -189,6 +189,7 @@ export default function Dashboard() {
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] =
     useState<WorkoutTemplate | null>(null);
   const [currentWorkout, setCurrentWorkout] = useState<WorkoutSession | null>(
@@ -203,9 +204,15 @@ export default function Dashboard() {
     dateLabel: string;
   } | null>(null);
 
-  const requestLogout = () => {
-    if (!window.confirm("Czy na pewno chcesz się wylogować?")) return;
-    void logout(() => router.replace("/login"));
+  const requestLogout = async () => {
+    const response = await fetch(`${API_URL}/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+    });
+    if (!response.ok) {
+      throw new Error("Nie udało się wylogować. Spróbuj ponownie.");
+    }
+    router.replace("/login");
   };
 
   useEffect(() => {
@@ -785,8 +792,10 @@ export default function Dashboard() {
           <AccountMenu
             username={username || "Użytkownik"}
             role={userRole}
+            accountMenuOpen={accountMenuOpen}
             profileOpen={profileOpen}
             onLogout={requestLogout}
+            onCloseAccountMenu={() => setAccountMenuOpen(false)}
             onOpenProfile={() => setProfileOpen(true)}
             onCloseProfile={() => setProfileOpen(false)}
           />
@@ -799,7 +808,7 @@ export default function Dashboard() {
             }}
             onStartWorkout={(template) => void startWorkout(template)}
             onResumeWorkout={() => setWorkoutOpen(true)}
-            onProfile={() => setProfileOpen(true)}
+            onProfile={() => setAccountMenuOpen(true)}
             hasActiveWorkout={currentWorkout !== null}
           />
           {currentWorkout && !workoutOpen && (

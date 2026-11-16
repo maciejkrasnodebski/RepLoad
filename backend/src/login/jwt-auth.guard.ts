@@ -10,7 +10,7 @@ import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
 
-export type JwtPayload = { sub: string; username: string };
+export type JwtPayload = { sub: string; username: string; sid: string };
 export type AuthUser = JwtPayload & { role: string };
 
 export type AuthRequest = Request & {
@@ -51,35 +51,59 @@ export class JwtAuthGuard implements CanActivate {
         !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
           verified.sub,
         ) ||
-        typeof verified.username !== 'string'
+        typeof verified.username !== 'string' ||
+        typeof verified.sid !== 'string' ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          verified.sid,
+        )
       ) {
         throw new UnauthorizedException();
       }
-      payload = { sub: verified.sub, username: verified.username };
+      payload = {
+        sub: verified.sub,
+        username: verified.username,
+        sid: verified.sid,
+      };
     } catch {
       throw new UnauthorizedException();
     }
 
     let user: { id: string; username: string; role: string } | null;
+    let session: { id: string; userId: string; expiresAt: Date } | null;
     try {
       user = await this.prisma.user.findUnique({
         where: { id: payload.sub },
         select: { id: true, username: true, role: true },
       });
+      session = await this.prisma.authSession.findUnique({
+        where: { id: payload.sid },
+        select: { id: true, userId: true, expiresAt: true },
+      });
     } catch (error) {
       this.logger.error(
-        'Database user verification failed; request denied.',
+        'Database authentication verification failed; request denied.',
         error instanceof Error ? error.stack : undefined,
       );
       throw new ServiceUnavailableException(
         'Nie można teraz zweryfikować sesji. Spróbuj ponownie później.',
       );
     }
-    if (!user) {
+    if (!user || !session) {
+      throw new UnauthorizedException('Sesja wygasła. Zaloguj się ponownie.');
+    }
+    if (
+      session.userId !== user.id ||
+      session.expiresAt.getTime() <= Date.now()
+    ) {
       throw new UnauthorizedException('Sesja wygasła. Zaloguj się ponownie.');
     }
 
-    req.user = { sub: user.id, username: user.username, role: user.role };
+    req.user = {
+      sub: user.id,
+      username: user.username,
+      role: user.role,
+      sid: session.id,
+    };
     return true;
   }
 

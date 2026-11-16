@@ -71,6 +71,12 @@ The exercise soft-delete flag (`exercises.isActive`) is installed by the
 `20261116195000_add_exercise_active_flag` migration. Production startup applies
 pending Prisma migrations before serving requests.
 
+Authentication tokens contain a random server-side session ID. Protected
+requests require that the matching unexpired `auth_sessions` row still exists.
+Logout deletes only the current session and clears the HttpOnly cookie, so
+replay of a copied token is rejected immediately. Existing tokens issued before
+this session migration must be replaced by signing in again.
+
 ## Workout history API
 
 All workout routes require the authenticated `token` cookie. User IDs and JWT

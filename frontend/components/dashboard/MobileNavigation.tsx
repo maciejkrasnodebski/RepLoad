@@ -171,8 +171,10 @@ export default function MobileNavigation({
           <button
             type="button"
             onClick={openProfile}
+            data-account-menu-trigger
+            aria-haspopup="menu"
             aria-current={active === "profile" ? "page" : undefined}
-            className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-semibold transition ${
+            className={`flex min-h-12 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-semibold transition ${
               active === "profile" ? "text-lime-300" : "text-neutral-500"
             }`}
           >

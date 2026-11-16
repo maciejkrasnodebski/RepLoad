@@ -7,6 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { SESSION_DURATION_MS } from './login.constants';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
@@ -68,11 +69,54 @@ export class LoginService {
     return { user: safeUser, token: await this.sign(safeUser) };
   }
 
+  async logout(token?: string) {
+    if (!token) return;
+
+    let payload: unknown;
+    try {
+      payload = await this.jwt.verifyAsync<Record<string, unknown>>(token);
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        ['JsonWebTokenError', 'TokenExpiredError', 'NotBeforeError'].includes(
+          error.name,
+        )
+      ) {
+        return;
+      }
+      throw error;
+    }
+
+    if (
+      typeof payload !== 'object' ||
+      payload === null ||
+      !('sub' in payload) ||
+      typeof payload.sub !== 'string' ||
+      !('sid' in payload) ||
+      typeof payload.sid !== 'string'
+    ) {
+      return;
+    }
+
+    await this.prisma.authSession.deleteMany({
+      where: { id: payload.sid, userId: payload.sub },
+    });
+  }
+
   private normalize(username: string) {
     return username.trim().toLowerCase();
   }
 
-  private sign(user: { id: string; username: string; role: string }) {
-    return this.jwt.signAsync({ sub: user.id, username: user.username });
+  private async sign(user: { id: string; username: string; role: string }) {
+    const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);
+    const session = await this.prisma.authSession.create({
+      data: { userId: user.id, expiresAt },
+      select: { id: true },
+    });
+    return this.jwt.signAsync({
+      sub: user.id,
+      username: user.username,
+      sid: session.id,
+    });
   }
 }

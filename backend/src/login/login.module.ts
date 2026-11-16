@@ -5,6 +5,7 @@ import { AdminGuard } from './admin.guard';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { LoginController } from './login.controller';
 import { LoginService } from './login.service';
+import { SESSION_DURATION_MS } from './login.constants';
 
 @Module({
   imports: [
@@ -12,7 +13,7 @@ import { LoginService } from './login.service';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.getOrThrow<string>('JWT_SECRET'),
-        signOptions: { expiresIn: 60 * 60 * 24 * 7 }, // 7 dni
+        signOptions: { expiresIn: SESSION_DURATION_MS / 1000 },
       }),
     }),
   ],

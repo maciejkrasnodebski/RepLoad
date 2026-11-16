@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+@keyframes account-dialog-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 :root {
   color-scheme: dark;
   --app-bg: #0e1116;
