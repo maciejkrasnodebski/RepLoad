@@ -127,4 +127,54 @@ describe('ExercisesService', () => {
       }),
     );
   });
+
+  it('lets admins create global exercises regardless of existing names', async () => {
+    const create = jest.fn().mockResolvedValue({
+      id: '550e8400-e29b-41d4-a716-446655440011',
+      name: 'Przysiad',
+      userId: null,
+    });
+    const findFirst = jest.fn().mockResolvedValue({ id: 'existing-exercise' });
+    const service = new ExercisesService({
+      exercise: { create, findFirst },
+    } as unknown as PrismaService);
+
+    await service.createGlobal({ name: ' Przysiad ' });
+
+    expect(findFirst).not.toHaveBeenCalled();
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          name: 'Przysiad',
+          userId: null,
+          isActive: true,
+        }),
+      }),
+    );
+  });
+
+  it('lets admins rename a global exercise to a name already in use', async () => {
+    const findFirst = jest.fn().mockResolvedValue({
+      id: 'global-exercise',
+      name: 'Wyciskanie',
+    });
+    const update = jest.fn().mockResolvedValue({
+      id: 'global-exercise',
+      name: 'Przysiad',
+      userId: null,
+    });
+    const service = new ExercisesService({
+      exercise: { findFirst, update },
+    } as unknown as PrismaService);
+
+    await service.updateGlobal('global-exercise', { name: 'Przysiad' });
+
+    expect(findFirst).toHaveBeenCalledTimes(1);
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'global-exercise' },
+        data: expect.objectContaining({ name: 'Przysiad' }),
+      }),
+    );
+  });
 });

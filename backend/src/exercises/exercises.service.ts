@@ -187,31 +187,19 @@ export class ExercisesService {
 
   async createGlobal(dto: CreateExerciseDto) {
     const name = this.normalizeName(dto.name);
-    await this.ensureUniquePerUser(name, null, true);
-
-    try {
-      return await this.prisma.exercise.create({
-        data: {
-          name,
-          description: this.normalizeOptional(dto.description),
-          exerciseType: dto.exerciseType?.trim() || 'Inne',
-          equipment: this.normalizeOptional(dto.equipment),
-          muscleGroup: this.normalizeOptional(dto.muscleGroup),
-          difficultyLevel: this.normalizeOptional(dto.difficultyLevel),
-          userId: null,
-          isActive: true,
-        },
-        select: exerciseSelect,
-      });
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
-        throw new ConflictException('Globalne ćwiczenie o tej nazwie już istnieje.');
-      }
-      throw error;
-    }
+    return this.prisma.exercise.create({
+      data: {
+        name,
+        description: this.normalizeOptional(dto.description),
+        exerciseType: dto.exerciseType?.trim() || 'Inne',
+        equipment: this.normalizeOptional(dto.equipment),
+        muscleGroup: this.normalizeOptional(dto.muscleGroup),
+        difficultyLevel: this.normalizeOptional(dto.difficultyLevel),
+        userId: null,
+        isActive: true,
+      },
+      select: exerciseSelect,
+    });
   }
 
   async updateGlobal(id: string, dto: CreateExerciseDto) {
@@ -222,10 +210,6 @@ export class ExercisesService {
     });
     if (!existing) {
       throw new BadRequestException('Nie znaleziono aktywnego ćwiczenia globalnego.');
-    }
-
-    if (existing.name.toLowerCase() !== name.toLowerCase()) {
-      await this.ensureUniquePerUser(name, null, true);
     }
 
     return this.prisma.exercise.update({
