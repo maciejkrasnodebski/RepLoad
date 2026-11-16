@@ -157,32 +157,16 @@ export default function AdminPanelPage() {
           typeof result.user !== "object" ||
           result.user === null ||
           !("username" in result.user) ||
-          typeof result.user.username !== "string"
+          typeof result.user.username !== "string" ||
+          !("role" in result.user) ||
+          typeof result.user.role !== "string"
         ) {
           throw new Error("Serwer zwrócił nieprawidłowe dane sesji.");
         }
         setUsername(result.user.username);
-
-        const authorization = await fetch(
-          `${API_URL}/admin/exercises/stats`,
-          {
-            credentials: "include",
-            signal: controller.signal,
-            cache: "no-store",
-          },
-        );
-        if (authorization.status === 401) {
-          router.replace("/login?next=%2Fpanel-admin");
-          return;
-        }
-        if (authorization.status === 403) {
+        if (result.user.role !== "admin") {
           setStatus("forbidden");
           return;
-        }
-        if (!authorization.ok) {
-          throw new Error(
-            "Nie można teraz zweryfikować uprawnień. Spróbuj ponownie później.",
-          );
         }
         setStatus("ready");
       } catch (error) {

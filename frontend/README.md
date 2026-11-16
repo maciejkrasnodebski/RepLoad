@@ -32,10 +32,11 @@ Vercel origin and forwards them to Render. The database connection string and
 JWT secret belong only in the Render backend environment, never in Vercel
 frontend variables.
 
-The `/panel-admin` route checks identity with `/auth/me`, then asks the
-protected admin API to authorize the request. The API validates the JWT
-identity and reads the current `role` from PostgreSQL for every admin request;
-the role returned to the browser is not used to grant access. Since the backend
+The `/panel-admin` route reads the current username and role from `/auth/me` to
+show the admin panel only to users with the `admin` role. This is only a
+client-side navigation/UI check: every admin API request independently
+validates the JWT identity and reads the current `role` from PostgreSQL before
+granting access. New accounts default to the `user` role. Since the backend
 runs as a persistent Render service rather than a Vercel function, database
 connections are managed by its Prisma PostgreSQL adapter and must be configured
 on Render.
